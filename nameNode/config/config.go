@@ -3,6 +3,8 @@ package config
 import (
 	"LDFS/model"
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
@@ -10,7 +12,7 @@ import (
 
 var (
 	//读取文件个各节点的IP地址
-	DataNodeList []*model.DataNode
+	DataNodeList []model.DataNode
 	DataNodeCli  *DataNodeclient
 
 	Mysql  *MysqlConfig
@@ -20,11 +22,18 @@ var (
 	SystemDB string
 
 	MultiUploadDir string
+	FileMetaDir    string
+
+	ECDataShardNum   int64
+	ECParityShardNum int64
+	CopyReplicasNum  int64
 )
 
 const (
 	StoragePolicyEC   string = "EC"
 	StoragePolicyCopy string = "cpoy"
+
+	RemainSize int64 = 100 * 1024 * 1024
 )
 
 //初始化配置读取器viper
@@ -85,6 +94,7 @@ func ConfigInit() (err error) {
 
 	SystemDB = viper.GetString("SYSTEM_DB")
 	MultiUploadDir = viper.GetString("MultiUploadDir")
+	FileMetaDir = viper.GetString("FileMetaDir")
 	DataNodeCli = &DataNodeclient{}
 	DataNodeUrls := viper.GetStringSlice("Nodes.List")
 	for _, url := range DataNodeUrls {
@@ -95,5 +105,13 @@ func ConfigInit() (err error) {
 		}
 		DataNodeList = append(DataNodeList, dataNode)
 	}
+
+	ECDataShardNum = viper.GetInt64("EC.dataShards")
+	ECParityShardNum = viper.GetInt64("EC.parityShards")
+	CopyReplicasNum = viper.GetInt64("Copy.replicasNum")
+
+	// 种子随机数生成器
+	rand.Seed(time.Now().UnixNano())
+
 	return
 }

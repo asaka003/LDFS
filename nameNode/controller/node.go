@@ -26,7 +26,7 @@ func AddDataNode(c *gin.Context) {
 	}
 	//查询DataNode 存储磁盘信息
 
-	config.DataNodeList = append(config.DataNodeList, param)
+	config.DataNodeList = append(config.DataNodeList, *param)
 	ResponseSuc(c, nil)
 }
 

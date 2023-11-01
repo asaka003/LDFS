@@ -15,7 +15,7 @@ type DataNodeclient struct {
 	GetStorageInfoUrl string
 }
 
-func (dataNodeClient *DataNodeclient) GetStorageInfo(backend string) (dataNodeInfo *model.DataNode, err error) {
+func (dataNodeClient *DataNodeclient) GetStorageInfo(backend string) (dataNodeInfo model.DataNode, err error) {
 	res, err := http.Get(backend + dataNodeClient.GetStorageInfoUrl)
 	if err != nil {
 		return
@@ -25,8 +25,8 @@ func (dataNodeClient *DataNodeclient) GetStorageInfo(backend string) (dataNodeIn
 	if err != nil {
 		return
 	}
-	dataNodeInfo = new(model.DataNode)
-	err = json.Unmarshal(resBytes, dataNodeInfo)
+	dataNodeInfo = model.DataNode{}
+	err = json.Unmarshal(resBytes, &dataNodeInfo)
 	if err != nil {
 		return
 	}

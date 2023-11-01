@@ -49,10 +49,11 @@ func GetStorageInfo(c *gin.Context) {
 		return
 	}
 
-	result := model.DataNode{
-		NodeDiskSize:      diskSize,
-		NodeFileTotalSize: fileTotalSize,
-		NodeDiskUsedSize:  totalUsedSize,
+	result := &model.DataNode{
+		NodeDiskSize:          diskSize,
+		NodeFileTotalSize:     fileTotalSize,
+		NodeDiskUsedSize:      totalUsedSize,
+		NodeDiskAvailableSize: diskSize - totalUsedSize,
 	}
 
 	// 构建响应

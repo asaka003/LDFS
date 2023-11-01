@@ -49,5 +49,10 @@ import (
 
 //保存加单上传文件DataNode存储信息
 func SaveSampleUploadInfo(fileKey string, list []*model.Shard) (err error) {
-	return db.DB.SaveSampleUploadInfo(fileKey, list)
+	return db.DB.SaveFileMetaInfo(fileKey, list)
+}
+
+//查询所有的FileKeys列表
+func GetAllFileKeys() {
+
 }

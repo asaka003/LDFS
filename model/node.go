@@ -46,9 +46,10 @@ type Object struct {
 type DataNode struct {
 	// IP           string `json:"ip"`
 	// Port         string `json:"port"`
-	URL               string `json:"url"`
-	NodeName          string `json:"node_name"`
-	NodeDiskSize      int64  `json:"node_disk_size"`
-	NodeFileTotalSize int64  `json:"node_file_total_size"`
-	NodeDiskUsedSize  int64  `json:"node_disk_used_size"`
+	URL                   string `json:"url"`
+	NodeName              string `json:"node_name"`
+	NodeDiskSize          int64  `json:"node_disk_size"`
+	NodeFileTotalSize     int64  `json:"node_file_total_size"`
+	NodeDiskUsedSize      int64  `json:"node_disk_used_size"`
+	NodeDiskAvailableSize int64  `json:"node_disk_available_size"`
 }

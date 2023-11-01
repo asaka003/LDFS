@@ -57,6 +57,10 @@ var (
 		http.StatusBadRequest,
 		"数据库配置禁止",
 	}
+	CodeDiskIsFull ResCode = ResCode{
+		http.StatusInternalServerError,
+		"文件存储容量已满,请扩容",
+	}
 )
 
 func (c ResCode) Msg() string {
