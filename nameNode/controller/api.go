@@ -2,10 +2,9 @@ package controller
 
 import (
 	"LDFS/fileNode/logger"
-	"LDFS/fileNode/util"
 	"LDFS/model"
 	"LDFS/nameNode/config"
-	"LDFS/nameNode/logic"
+	"LDFS/nameNode/util"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -13,80 +12,55 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
-//获取所有文件元信息列表
+//获取所有文件信息列表
 func GetAllFileKeys(c *gin.Context) {
+	dir, err := os.Open(config.FileMetaDir)
+	if err != nil {
+		ResponseErr(c, CodeNotFoundFile)
+		return
+	}
+	defer dir.Close()
 
+	fileList, err := dir.Readdir(-1)
+	if err != nil {
+		ResponseErr(c, CodeServerBusy)
+		return
+	}
+
+	fileInfoList := make([]*model.FileInfo, 0)
+	for _, f := range fileList {
+		if f.IsDir() {
+			continue
+		}
+		//读取文件meta信息
+		path := filepath.Join(config.FileMetaDir, f.Name())
+		fileMeta, err := util.GetFileMetaInFile(path)
+		if err != nil {
+			continue
+		}
+		fileInfoList = append(fileInfoList, &model.FileInfo{
+			FileKey: fileMeta.FileKey,
+			Size:    fileMeta.FileSize,
+		})
+	}
+	ResponseSuc(c, fileInfoList)
 }
 
 //根据fileKey获取文件Meta信息
 func GetFileMetaByFileKey(c *gin.Context) {
-
-}
-
-//初始化分块上上传
-func InitMultiUpload(c *gin.Context) {
-	params := new(model.InitUploadParam)
-	err := c.ShouldBindJSON(params)
-	if err != nil || strings.Contains(params.FileHash, "..") { //过滤路径穿越
-		ResponseErr(c, CodeInvalidParam)
-		return
-	}
-
-	//创建对应的追加写入文件
-	path := filepath.Join(config.MultiUploadDir, params.FileHash)
-	file, err := os.Create(path)
+	fileKey := c.Param("fileKey")
+	metaPath := filepath.Join(config.FileMetaDir, util.BytesHash([]byte(fileKey))+".json")
+	fileMeta, err := util.GetFileMetaInFile(metaPath)
 	if err != nil {
-		ResponseErr(c, CodeServerBusy)
+		logger.Logger.Error("读取fileMeta文件信息失败", zap.Error(err))
 		return
 	}
-	defer file.Close()
-	ResponseSuc(c, nil)
-}
-
-//上传文件分块
-func UploadMultiPart(c *gin.Context) {
-
-}
-
-//完成分块上传
-func CompeleteMultiUpload(c *gin.Context) {
-
-}
-
-//查询文件上传进度
-func CheckMultiProgress(c *gin.Context) {
-
-}
-
-//请求文件下一个分块上传DataNodes地址
-
-//简单上传文件
-func GetSampleUploadNodeList(c *gin.Context) {
-	res := model.SampleUploadList{}
-	ResponseSuc(c, res)
-}
-
-//保存简单上传文件DataNode存储列表信息
-func SendSampleUploadInfo(c *gin.Context) {
-	params := new(model.SampleUploadInfo)
-	err := c.ShouldBindJSON(params)
-	if err != nil {
-		ResponseErr(c, CodeInvalidParam)
-		return
-	}
-	err = logic.SaveSampleUploadInfo(params.FileKey, params.Shards)
-	if err != nil {
-		logger.Logger.Error("保存简单上传文件失败", zap.Error(err))
-		ResponseErr(c, CodeServerBusy)
-		return
-	}
-	ResponseSuc(c, nil)
+	ResponseSuc(c, fileMeta)
 }
 
 //请求上传文件

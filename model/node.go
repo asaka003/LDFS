@@ -53,3 +53,8 @@ type DataNode struct {
 	NodeDiskUsedSize      int64  `json:"node_disk_used_size"`
 	NodeDiskAvailableSize int64  `json:"node_disk_available_size"`
 }
+
+type FileInfo struct {
+	FileKey string `json:"file_key"`
+	Size    int64  `json:"size"`
+}
