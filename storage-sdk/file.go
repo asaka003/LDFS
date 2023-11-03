@@ -122,7 +122,7 @@ func (cli *ReplicasClient) SimpleUploadFile(fileKey string, srcPath string) (err
 type ECClient struct {
 }
 
-//初始化SDK列表,加载DataNode地址列表,目前只支持http协议(连续布局策略)
+//初始化SDK列表,加载DataNode地址列表,目前只支持http协议
 func NewECClient(nameNodeUrls []string) (client StorageClient) {
 	//DataNodeUrls = dataNodeUrls
 	NameNodeUrls = nameNodeUrls
