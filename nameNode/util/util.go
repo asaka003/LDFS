@@ -1,7 +1,9 @@
 package util
 
 import (
+	"LDFS/fileNode/util"
 	"LDFS/model"
+	"LDFS/nameNode/config"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
@@ -10,6 +12,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -59,5 +62,32 @@ func GetFileMetaInFile(path string) (meta *model.FileMetadata, err error) {
 	io.Copy(buffer, file)
 	meta = new(model.FileMetadata)
 	err = json.Unmarshal(buffer.Bytes(), meta)
+	return
+}
+
+//存储文件meta信息到文件中
+func SaveFileMetaInFile(fileMeta *model.FileMetadata) (err error) {
+	//保存meta信息到文件中
+	metaJson, err := json.Marshal(fileMeta)
+	if err != nil {
+		return
+	}
+	path := filepath.Join(config.FileMetaDir, util.BytesHash([]byte(fileMeta.FileKey))+".json")
+	_, err = os.Stat(path)
+	if err == nil {
+		return
+	}
+
+	//创建文件目录
+	dir := filepath.Dir(path)
+	if err = os.MkdirAll(dir, os.ModePerm); err != nil {
+		return
+	}
+	file, err := os.Create(path)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+	io.Copy(file, bytes.NewBuffer(metaJson))
 	return
 }

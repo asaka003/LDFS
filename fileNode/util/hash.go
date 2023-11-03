@@ -2,7 +2,6 @@ package util
 
 import (
 	"crypto/md5"
-	"crypto/sha1"
 	"encoding/hex"
 	"io"
 	"mime/multipart"
@@ -40,18 +39,6 @@ func FileHash(file *os.File) string {
 
 func BytesHash(data []byte) string {
 	return bytesMD5(data)
-}
-
-func bytesSha1(data []byte) string {
-	_sha1 := sha1.New()
-	_sha1.Write(data)
-	return hex.EncodeToString(_sha1.Sum([]byte("")))
-}
-
-func fileSha1(file *os.File) string {
-	_sha1 := sha1.New()
-	io.Copy(_sha1, file)
-	return hex.EncodeToString(_sha1.Sum(nil))
 }
 
 func bytesMD5(data []byte) string {

@@ -30,8 +30,7 @@ func AddDataNode(c *gin.Context) {
 	ResponseSuc(c, nil)
 }
 
-//动态添加NameNodeq请求(没有密码认证，不安全)
-//使用sqlite数据库的情况下不允许动态添加NameNode节点
+//动态添加NameNodeq请求(没有密码认证，不安全)（暂时弃用）
 func AddNameNode(c *gin.Context) {
 	if config.SystemDB == "sqlite" {
 		ResponseErr(c, CodeDatabaseForbidden)

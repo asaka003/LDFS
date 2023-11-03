@@ -6,9 +6,10 @@ node:
   name: "local_1"
   http_ip: "0.0.0.0:8084"
 
-secret:
-  jwt_secret: "test_secret"
-
 Data:
   shardsDir: "./DataShards/"
+  tempDir: "./tempShards/"  #EC模式下存储临时恢复Shards目录
+
+
+
   

@@ -14,7 +14,7 @@ import (
 
 //获取存储占用信息
 func GetStorageInfo(c *gin.Context) {
-	dir := config.FileShardDir
+	dir := config.ShardsDir
 
 	// 获取指定目录下的所有文件大小
 	fileTotalSize, err := util.GetDirectorySize(dir)
@@ -58,14 +58,4 @@ func GetStorageInfo(c *gin.Context) {
 
 	// 构建响应
 	ResponseSuc(c, result)
-}
-
-//恢复文件块数据
-func RecoverShard(c *gin.Context) {
-
-}
-
-//复制其他节点的文件数据块(冗余副本策略)
-func CopyFileShardFromOtherNode(c *gin.Context) {
-
 }

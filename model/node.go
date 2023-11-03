@@ -8,10 +8,10 @@ type SampleUploadList struct {
 	UrlList      []string `json:"url_list"`
 }
 
-type SampleUploadInfo struct {
-	FileKey string   `json:"file_key"`
-	Shards  []*Shard `json:"shards"`
-}
+// type SampleUploadInfo struct {
+// 	FileKey string   `json:"file_key"`
+// 	Shards  []*Shard `json:"shards"`
+// }
 
 type FileMetadata struct {
 	UUID          string    `json:"uuid"`
@@ -23,16 +23,23 @@ type FileMetadata struct {
 	DataShards    int       `json:"data_shards"`
 	ParityShards  int       `json:"parity_shards"`
 	StoragePolicy string    `json:"storage_policy"` //存储策略  EC表示纠删码模式,copy表示副本冗余模式
-	Shards        []*Shard  `json:"shards"`
+	Blocks        []*Block  `json:"blocks"`
 	EncodingTime  time.Time `json:"encoding_time"`
+	Status        string    `json:"status"`
+}
+
+type Block struct {
+	BlockId   int      `json:"block_id"`
+	BlockSize int64    `json:"block_size"`
+	Hash      string   `json:"hash"`
+	Shards    []*Shard `json:"shards"`
 }
 
 type Shard struct {
-	ShardID   int      `json:"shard_id"`
-	Hash      string   `json:"hash"`
-	NodeName  string   `json:"node_name"`
-	NodeURLs  []string `json:"node_urls"`
-	PartHashs []string `json:"part_hashs"` // EC纠删码模式下可用
+	ShardID  int64  `json:"shard_id"`
+	Hash     string `json:"hash"`
+	NodeName string `json:"node_name"`
+	NodeURL  string `json:"node_url"`
 }
 
 type CompleteMultipartUploadOptions struct {

@@ -5,8 +5,6 @@ import (
 	"LDFS/nameNode/route"
 	"fmt"
 
-	"LDFS/nameNode/DB/redis"
-
 	"github.com/spf13/viper"
 )
 
@@ -23,11 +21,6 @@ func init() {
 }
 
 func main() {
-
-	if err := redis.RedisInit(); err != nil { //初始化redis客户端
-		panic(err)
-	}
-	defer redis.Close()
 
 	//初始化路由信息
 	r := route.SetRoute()

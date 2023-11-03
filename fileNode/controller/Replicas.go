@@ -21,15 +21,15 @@ import (
 //上传数据块
 func ReplicasUploadShard(c *gin.Context) {
 	shardHash := c.PostForm("hash")
-	shardsJson := c.PostForm("shardsJson")
-	shard := &model.Shard{}
-	err := json.Unmarshal([]byte(shardsJson), shard)
+	blockJson := c.PostForm("blockJson")
+	block := &model.Block{}
+	err := json.Unmarshal([]byte(blockJson), block)
 	if err != nil {
 		ResponseErr(c, CodeInvalidParam)
 		return
 	}
 	copyNo, err := strconv.ParseInt(c.PostForm("copyNo"), 10, 64)
-	if err != nil || copyNo > int64(len(shard.NodeURLs)) {
+	if err != nil || copyNo > int64(len(block.Shards)) {
 		ResponseErr(c, CodeInvalidParam)
 		return
 	}
@@ -58,7 +58,7 @@ func ReplicasUploadShard(c *gin.Context) {
 	c.SaveUploadedFile(fileHeader, filePath)
 
 	//如不是最后一个副本，则继续副本冗余传递
-	if copyNo < int64(len(shard.NodeURLs)-1) {
+	if copyNo < int64(len(block.Shards)-1) {
 		buf := make([]byte, 0)
 		buffer := bytes.NewBuffer(buf)
 		src, err := fileHeader.Open()
@@ -68,7 +68,7 @@ func ReplicasUploadShard(c *gin.Context) {
 		}
 		defer src.Close()
 		io.Copy(buffer, src)
-		err = config.DataNodeClient.ReplicasUploadShard(shardHash, shardsJson, buffer, shard.NodeURLs[copyNo+1], copyNo+1)
+		err = config.DataNodeClient.ReplicasUploadShard(shardHash, blockJson, buffer, block.Shards[copyNo+1].NodeURL, copyNo+1)
 		if err != nil {
 			ResponseErr(c, CodeServerBusy)
 			return

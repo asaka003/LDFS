@@ -54,6 +54,10 @@ var (
 		http.StatusBadRequest,
 		"文件名非法",
 	}
+	CodeFileError ResCode = ResCode{
+		http.StatusInternalServerError,
+		"文件已损坏",
+	}
 )
 
 func (c ResCode) Msg() string {

@@ -2,7 +2,6 @@ package storagesdk
 
 import (
 	"LDFS/fileNode/util"
-	"LDFS/model"
 	"LDFS/nodeClient"
 	"bytes"
 	"encoding/json"
@@ -20,67 +19,6 @@ type StorageClient interface {
 
 //父类存储客户端
 type ObjectClient struct {
-}
-
-//初始化分块上传文件
-func (cli *ObjectClient) InitiateMultipartUpload(fileKey string, fileSize int64) (UploadID string, err error) {
-	//一致性hash负载均衡获取要请求的NameNode地址
-	backend, err := nameNodeCluster.Consistent.Get(fileKey)
-	if err != nil {
-		return
-	}
-	//请求NameNode初始化上传，获取文件上传节点
-	UploadID, err = NameNodeClient.InitMultiUpload(fileKey, "", backend, fileSize)
-	if err != nil {
-		return
-	}
-	return
-}
-
-//上传分块
-func (cli *ObjectClient) UploadPart(fileKey, uploadID string, partNumber int, r io.Reader) (err error) {
-	//一致性hash负载均衡获取要请求的NameNode地址
-	backend, err := nameNodeCluster.Consistent.Get(fileKey)
-	if err != nil {
-		return
-	}
-
-	err = NameNodeClient.UploadMultiPart(fileKey, uploadID, backend, partNumber, r)
-	return
-}
-
-//查询已上传分块
-func (cli *ObjectClient) ListParts(fileKey, uploadID string) (parts []*model.Object, err error) {
-	//一致性hash负载均衡获取要请求的NameNode地址
-	backend, err := nameNodeCluster.Consistent.Get(fileKey)
-	if err != nil {
-		return
-	}
-
-	parts, err = NameNodeClient.ListParts(fileKey, uploadID, backend)
-	return
-}
-
-//完成分块上传
-func (cli *ObjectClient) CompleteMultipartUpload(fileKey, uploadID string, opt *model.CompleteMultipartUploadOptions) (err error) {
-	//一致性hash负载均衡获取要请求的NameNode地址
-	backend, err := nameNodeCluster.Consistent.Get(fileKey)
-	if err != nil {
-		return
-	}
-	err = NameNodeClient.CompeleteMultiUpload(fileKey, "", uploadID, backend, opt)
-	return
-}
-
-//终止分块上传
-func (cli *ObjectClient) AbortMultipartUpload(fileKey, uploadID string) (err error) {
-	//一致性hash负载均衡获取要请求的NameNode地址
-	backend, err := nameNodeCluster.Consistent.Get(fileKey)
-	if err != nil {
-		return
-	}
-	err = NameNodeClient.AbortMultipartUpload(fileKey, uploadID, backend)
-	return
 }
 
 //副本冗余模式Client
@@ -108,7 +46,7 @@ func (cli *ReplicasClient) DownloadFile(fileKey string, destPath string) (err er
 	if err != nil {
 		return
 	}
-	shards := fileMeta.Shards
+	blocks := fileMeta.Blocks
 	// 打开文件以附加模式打开，如果文件不存在则创建
 	file, err := os.OpenFile(destPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -116,11 +54,16 @@ func (cli *ReplicasClient) DownloadFile(fileKey string, destPath string) (err er
 	}
 	defer file.Close()
 
-	for _, shard := range shards {
-		err = DataNodeClient.ReplicasDownloadShard(shard.Hash, shard.NodeURLs[0], file)
-		if err != nil {
-			return err
+	for _, block := range blocks {
+		for _, shard := range block.Shards {
+			err = DataNodeClient.ReplicasDownloadShard(block.Hash, shard.NodeURL, file)
+			if err != nil {
+				continue
+			} else {
+				break
+			}
 		}
+
 	}
 
 	return
@@ -152,7 +95,7 @@ func (cli *ReplicasClient) SimpleUploadFile(fileKey string, srcPath string) (err
 	//上传文件块
 	buf := make([]byte, Copy_BlockSize)
 	buffer := bytes.NewBuffer(buf)
-	for _, shard := range fileMeta.Shards {
+	for _, block := range fileMeta.Blocks {
 		// 重置 buffer，以便重新使用
 		buffer.Reset()
 		// 分块读取文件数据到 buffer
@@ -160,13 +103,13 @@ func (cli *ReplicasClient) SimpleUploadFile(fileKey string, srcPath string) (err
 		if err != nil && err != io.EOF {
 			return
 		}
-		shard.Hash = util.BytesHash(buffer.Bytes())
-		var shardJson []byte
-		shardJson, err = json.Marshal(shard)
+		block.Hash = util.BytesHash(buffer.Bytes())
+		var blockJson []byte
+		blockJson, err = json.Marshal(block)
 		if err != nil {
 			return
 		}
-		err = DataNodeClient.ReplicasUploadShard(shard.Hash, string(shardJson), buffer, shard.NodeURLs[0], 0)
+		err = DataNodeClient.ReplicasUploadShard(block.Hash, string(blockJson), buffer, block.Shards[0].NodeURL, 0)
 		if err != nil {
 			return
 		}
@@ -175,25 +118,23 @@ func (cli *ReplicasClient) SimpleUploadFile(fileKey string, srcPath string) (err
 	return
 }
 
-//EC模式-条形布局Client
-
-//EC模式-连续布局Client
-type ContiguousLayoutClient struct {
+//EC模式-Client
+type ECClient struct {
 }
 
 //初始化SDK列表,加载DataNode地址列表,目前只支持http协议(连续布局策略)
-func NewContiguousLayoutClient(nameNodeUrls []string) (client StorageClient) {
+func NewECClient(nameNodeUrls []string) (client StorageClient) {
 	//DataNodeUrls = dataNodeUrls
 	NameNodeUrls = nameNodeUrls
 	//InitReverseProxy(DataNodeUrls)
 	InitCluster(nameNodeUrls)
 	NameNodeClient = nodeClient.GetNameNodeHttpClient()
 	DataNodeClient = nodeClient.GetDataNodeHttpClient()
-	return &ContiguousLayoutClient{}
+	return &ECClient{}
 }
 
 //下载文件
-func (cli *ContiguousLayoutClient) DownloadFile(fileKey string, destPath string) (err error) {
+func (cli *ECClient) DownloadFile(fileKey string, destPath string) (err error) {
 	//一致性hash负载均衡获取要请求的NameNode地址
 	backend, err := nameNodeCluster.Consistent.Get(fileKey)
 	if err != nil {
@@ -204,23 +145,7 @@ func (cli *ContiguousLayoutClient) DownloadFile(fileKey string, destPath string)
 		return err
 	}
 
-	// //生成随机目录
-	// randomInPath := filepath.Join(EC_InputDir, generateRandomString(6))
-	// err = os.MkdirAll(randomInPath, os.ModeDir)
-	// if err != nil {
-	// 	return
-	// }
-	// defer func() { //移除临时编码文件
-	// 	os.RemoveAll(randomInPath)
-	// }()
-	// filePaths := []string{}
-	// for _, shard := range fileMeta.Shards {
-	// 	fpath := filepath.Join(randomInPath, shard.Hash)
-	// 	filePaths = append(filePaths, fpath)
-	// 	DataNodeClient.downloadShard(shard.Hash, shard.NodeURLs[0], fpath)
-	// }
-
-	blockNum := len(fileMeta.Shards)
+	blockNum := len(fileMeta.Blocks)
 	buffers := make([]*bytes.Buffer, fileMeta.DataShards+fileMeta.ParityShards)
 	for i := range buffers {
 		buf := make([]byte, EC_ShardSize)
@@ -230,7 +155,7 @@ func (cli *ContiguousLayoutClient) DownloadFile(fileKey string, destPath string)
 	for blockId := 0; blockId < blockNum; blockId++ {
 		length := fileMeta.DataShards + fileMeta.ParityShards
 		for shardId := 0; shardId < length; shardId++ {
-			err = DataNodeClient.ECDownloadShard(fileMeta.Shards[blockId].PartHashs[shardId], fileMeta.Shards[blockId].NodeURLs[shardId], buffers[shardId])
+			err = DataNodeClient.ECDownloadShard(fileMeta.Blocks[blockId].Shards[shardId].Hash, fileMeta.Blocks[blockId].Shards[shardId].NodeURL, buffers[shardId])
 			if err != nil {
 				return err
 			}
@@ -242,7 +167,7 @@ func (cli *ContiguousLayoutClient) DownloadFile(fileKey string, destPath string)
 }
 
 //简单上传文件
-func (cli *ContiguousLayoutClient) SimpleUploadFile(fileKey string, srcPath string) (err error) {
+func (cli *ECClient) SimpleUploadFile(fileKey string, srcPath string) (err error) {
 	//一致性hash负载均衡获取要请求的NameNode地址
 	backend, err := nameNodeCluster.Consistent.Get(fileKey)
 	if err != nil {
@@ -283,8 +208,8 @@ func (cli *ContiguousLayoutClient) SimpleUploadFile(fileKey string, srcPath stri
 		for i := 0; i < length; i++ {
 			//计算shard的Hash值
 			Hash := util.BytesHash(shardBuffs[i].Bytes())
-			fileMeta.Shards[blockId].PartHashs[i] = Hash
-			err = DataNodeClient.ECUploadShardBytes(Hash, blockBuf, fileMeta.Shards[blockId].NodeURLs[i])
+			fileMeta.Blocks[blockId].Shards[i].Hash = Hash
+			err = DataNodeClient.ECUploadShardBytes(Hash, blockBuf, fileMeta.Blocks[blockId].Shards[i].NodeURL)
 			if err != nil {
 				return err
 			}
@@ -292,7 +217,7 @@ func (cli *ContiguousLayoutClient) SimpleUploadFile(fileKey string, srcPath stri
 	}
 
 	//将保存文件DataNode存储列表信息
-	err = NameNodeClient.SendSampleUploadInfo(fileKey, backend, fileMeta.Shards)
+	err = NameNodeClient.CompleteSampleUpload(fileKey, backend)
 	if err != nil {
 		return
 	}

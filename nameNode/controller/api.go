@@ -5,9 +5,6 @@ import (
 	"LDFS/model"
 	"LDFS/nameNode/config"
 	"LDFS/nameNode/util"
-	"bytes"
-	"encoding/json"
-	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -72,6 +69,10 @@ func RequestUploadFile(c *gin.Context) {
 		return
 	}
 	fileMeta := &model.FileMetadata{}
+	fileMeta.FileKey = params.FileKey
+	fileMeta.StoragePolicy = params.StoragePolicy
+	fileMeta.FileSize = params.FileSize
+
 	result := &model.RequestUploadFileResponse{
 		FileMeta: fileMeta,
 	}
@@ -103,7 +104,7 @@ func RequestUploadFile(c *gin.Context) {
 	}
 
 	//根据DataNode剩余容量选择不重复的DataNode，如果选取的数量大于实际运行的dataNode数量，则会重复选取
-	for bolckId := 0; bolckId < int(blockNum); bolckId++ {
+	for blockId := 0; blockId < int(blockNum); blockId++ {
 		//对所有可用的DataNode列表中的剩余空间进行排序
 		sort.Slice(availableDataNodeList, func(i, j int) bool {
 			return availableDataNodeList[i].NodeDiskAvailableSize > availableDataNodeList[j].NodeDiskAvailableSize
@@ -122,41 +123,47 @@ func RequestUploadFile(c *gin.Context) {
 				selectDataNodeList = append(selectDataNodeList, availableDataNodeList[i])
 			}
 		}
-		URLs := make([]string, 0)
+		shards := make([]*model.Shard, 0)
 		for _, dataNode := range selectDataNodeList {
-			URLs = append(URLs, dataNode.URL)
+			shards = append(shards, &model.Shard{
+				NodeURL: dataNode.URL,
+			})
 		}
-		fileMeta.Shards = append(fileMeta.Shards, &model.Shard{
-			ShardID:  bolckId,
-			NodeURLs: URLs,
+		fileMeta.Blocks = append(fileMeta.Blocks, &model.Block{
+			BlockId:   blockId,
+			BlockSize: params.BlockSize,
+			Shards:    shards,
 		})
 	}
 
 	//保存meta信息到文件中
-	metaJson, err := json.Marshal(fileMeta)
+	err = util.SaveFileMetaInFile(fileMeta)
 	if err != nil {
 		ResponseErr(c, CodeServerBusy)
 		return
 	}
-	path := filepath.Join(config.FileMetaDir, util.BytesHash([]byte(params.FileKey))+".json")
-	_, err = os.Stat(path)
-	if err == nil {
-		ResponseErr(c, CodeFileExist)
-		return
-	}
-
-	//创建文件目录
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		ResponseErr(c, CodeServerBusy)
-		return
-	}
-	file, err := os.Create(path)
-	if err != nil {
-		ResponseErr(c, CodeServerBusy)
-		return
-	}
-	defer file.Close()
-	io.Copy(file, bytes.NewBuffer(metaJson))
 	ResponseSuc(c, result)
+}
+
+//完成文件上传请求
+func CompleteSampleUpload(c *gin.Context) {
+	params := new(model.CompleteSampleUploadParams)
+	err := c.ShouldBindJSON(params)
+	if err != nil {
+		ResponseErr(c, CodeInvalidParam)
+		return
+	}
+	metaPath := filepath.Join(config.FileMetaDir, util.BytesHash([]byte(params.FileKey))+".json")
+	fileMeta, err := util.GetFileMetaInFile(metaPath)
+	if err != nil {
+		logger.Logger.Error("读取fileMeta文件信息失败", zap.Error(err))
+		return
+	}
+	fileMeta.Status = "success"
+	err = util.SaveFileMetaInFile(fileMeta)
+	if err != nil {
+		ResponseErr(c, CodeServerBusy)
+		return
+	}
+	ResponseSuc(c, nil)
 }

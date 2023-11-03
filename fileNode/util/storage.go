@@ -31,7 +31,7 @@ func GetSystemDiskSize() (int64, error) {
 	} else if runtime.GOOS == "windows" {
 		cmd = exec.Command("wmic", "logicaldisk", "get", "size")
 	} else {
-		return 0, fmt.Errorf("Unsupported operating system: %s", runtime.GOOS)
+		return 0, fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
 	}
 
 	output, err := cmd.Output()
@@ -45,19 +45,19 @@ func GetSystemDiskSize() (int64, error) {
 		return parseWindowsDiskSize(string(output))
 	}
 
-	return 0, fmt.Errorf("Unsupported operating system: %s", runtime.GOOS)
+	return 0, fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
 }
 
 // 解析Linux系统下的磁盘大小
 func parseLinuxDiskSize(output string) (int64, error) {
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
-		return 0, fmt.Errorf("Failed to parse df output")
+		return 0, fmt.Errorf("failed to parse df output")
 	}
 
 	fields := strings.Fields(lines[1])
 	if len(fields) < 2 {
-		return 0, fmt.Errorf("Failed to parse df output")
+		return 0, fmt.Errorf("failed to parse df output")
 	}
 
 	// 解析磁盘总大小（以字节为单位）
@@ -74,7 +74,7 @@ func parseLinuxDiskSize(output string) (int64, error) {
 func parseWindowsDiskSize(output string) (diskSize int64, err error) {
 	lines := strings.Split(output, "\n")
 	if len(lines) < 2 {
-		return 0, fmt.Errorf("Failed to parse wmic output")
+		return 0, fmt.Errorf("failed to parse wmic output")
 	}
 
 	// 解析磁盘总大小（以字节为单位）
@@ -108,6 +108,6 @@ func parseSizeString(sizeStr string) (int64, error) {
 	case 'K':
 		return int64(sizeValue * 1024), nil
 	default:
-		return 0, fmt.Errorf("Unsupported size unit: %c", sizeUnit)
+		return 0, fmt.Errorf("unsupported size unit: %c", sizeUnit)
 	}
 }
