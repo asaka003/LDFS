@@ -320,3 +320,61 @@ func ReconstructBuffer(shardsBuffer []*bytes.Buffer, outputPath string, dataShar
 	}
 	return
 }
+
+func ReconstructMissShardFile(shardsBuffer []*bytes.Buffer, missPath string, dataShardNum, parityShardNum, missIndex int) (err error) {
+	// Create matrix
+	enc, err := reedsolomon.NewStream(dataShardNum, parityShardNum)
+	if err != nil {
+		return
+	}
+
+	// Create shards and load the data.
+	shards := make([]io.Reader, dataShardNum+parityShardNum)
+	originalBytes := make([][]byte, dataShardNum+parityShardNum)
+	for i, buf := range shardsBuffer {
+		shards[i] = shardsBuffer[i]
+		originalBytes[i] = buf.Bytes()
+	}
+
+	// Create out destination writers
+	out := make([]io.Writer, len(shards))
+	for i := range out {
+		if shards[i] == nil {
+			shardsBuffer[i] = bytes.NewBuffer(make([]byte, EC_ShardSize))
+			out[i] = shardsBuffer[i]
+		}
+	}
+	err = enc.Reconstruct(shards, out)
+	if err != nil {
+		return err
+	}
+
+	//把恢复成功的数据写回[]byte保存
+	for i := range originalBytes {
+		if originalBytes[i] == nil {
+			originalBytes[i] = shardsBuffer[i].Bytes()
+			shards[i] = shardsBuffer[i]
+		} else {
+			shardsBuffer[i].Reset()
+			shardsBuffer[i].Write(originalBytes[i])
+			shards[i] = shardsBuffer[i]
+		}
+	}
+
+	ok, err := enc.Verify(shards)
+	if !ok {
+		return ErrReconstruct
+	}
+	if err != nil {
+		return
+	}
+
+	file, err := os.Create(missPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	//恢复的shard块写入文件
+	io.Copy(file, shards[missIndex])
+	return
+}

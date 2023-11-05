@@ -1,8 +1,8 @@
 package main
 
 import (
-	"LDFS/fileNode/config"
-	"LDFS/fileNode/route"
+	"LDFS/dataNode/config"
+	"LDFS/dataNode/route"
 )
 
 func main() {

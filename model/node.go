@@ -2,17 +2,6 @@ package model
 
 import "time"
 
-type SampleUploadList struct {
-	DataShards   int      `json:"data_shards"`
-	ParityShards int      `json:"parity_shards"`
-	UrlList      []string `json:"url_list"`
-}
-
-// type SampleUploadInfo struct {
-// 	FileKey string   `json:"file_key"`
-// 	Shards  []*Shard `json:"shards"`
-// }
-
 type FileMetadata struct {
 	UUID          string    `json:"uuid"`
 	FileKey       string    `json:"file_key"`
@@ -40,14 +29,6 @@ type Shard struct {
 	Hash     string `json:"hash"`
 	NodeName string `json:"node_name"`
 	NodeURL  string `json:"node_url"`
-}
-
-type CompleteMultipartUploadOptions struct {
-	Parts []Object
-}
-type Object struct {
-	Hash       string
-	PartNumber int
 }
 
 type DataNode struct {

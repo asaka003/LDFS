@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"LDFS/fileNode/config"
-	"LDFS/fileNode/logger"
-	"LDFS/fileNode/util"
+	"LDFS/dataNode/config"
+	"LDFS/dataNode/logger"
+	"LDFS/dataNode/util"
 	"LDFS/model"
 	"os"
 	"path/filepath"

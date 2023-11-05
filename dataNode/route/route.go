@@ -1,7 +1,7 @@
 package route
 
 import (
-	"LDFS/fileNode/controller"
+	"LDFS/dataNode/controller"
 
 	"github.com/gin-gonic/gin"
 )

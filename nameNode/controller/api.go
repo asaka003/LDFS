@@ -1,10 +1,11 @@
 package controller
 
 import (
-	"LDFS/fileNode/logger"
+	"LDFS/dataNode/logger"
 	"LDFS/model"
 	"LDFS/nameNode/config"
 	"LDFS/nameNode/util"
+	"LDFS/nodeClient"
 	"math"
 	"os"
 	"path/filepath"
@@ -94,9 +95,9 @@ func RequestUploadFile(c *gin.Context) {
 	var selectDataNodeNum int
 
 	switch params.StoragePolicy {
-	case config.StoragePolicyCopy:
+	case nodeClient.StoragePolicyCopy:
 		selectDataNodeNum = int(config.CopyReplicasNum)
-	case config.StoragePolicyEC:
+	case nodeClient.StoragePolicyEC:
 		selectDataNodeNum = int(config.ECDataShardNum + config.ECParityShardNum)
 	default:
 		ResponseErr(c, CodeInvalidParam)

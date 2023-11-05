@@ -1,13 +1,16 @@
 package storagesdk
 
 import (
-	"LDFS/fileNode/util"
+	"LDFS/dataNode/util"
+	"LDFS/model"
 	"LDFS/nodeClient"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"math"
 	"os"
+	"sync"
 )
 
 //不同存储策略抽象接口
@@ -54,18 +57,32 @@ func (cli *ReplicasClient) DownloadFile(fileKey string, destPath string) (err er
 	}
 	defer file.Close()
 
+	wg := sync.WaitGroup{}
 	for _, block := range blocks {
+		ok := false
 		for _, shard := range block.Shards {
 			err = DataNodeClient.ReplicasDownloadShard(block.Hash, shard.NodeURL, file)
 			if err != nil {
+				wg.Add(1)
+				go func() {
+					DataNodeClient.RecoverShard(&model.RecoverShardParam{ //请求DataNode修复文件
+						Block:         block,
+						ShardId:       shard.ShardID,
+						StoragePolicy: nodeClient.StoragePolicyCopy,
+					}, shard.NodeURL)
+					wg.Done()
+				}()
 				continue
 			} else {
+				ok = true
 				break
 			}
 		}
-
+		if !ok {
+			return errors.New("文件损坏")
+		}
 	}
-
+	wg.Wait()
 	return
 }
 
@@ -87,7 +104,7 @@ func (cli *ReplicasClient) SimpleUploadFile(fileKey string, srcPath string) (err
 		return
 	}
 
-	fileMeta, err := NameNodeClient.RequestUploadFile(fileKey, backend, StoragePolicyCopy, fileInfo.Size(), Copy_BlockSize)
+	fileMeta, err := NameNodeClient.RequestUploadFile(fileKey, backend, nodeClient.StoragePolicyCopy, fileInfo.Size(), Copy_BlockSize)
 	if err != nil {
 		return
 	}
@@ -152,17 +169,31 @@ func (cli *ECClient) DownloadFile(fileKey string, destPath string) (err error) {
 		buffers[i] = bytes.NewBuffer(buf)
 	}
 	//下载文件Shard
+	wg := sync.WaitGroup{}
 	for blockId := 0; blockId < blockNum; blockId++ {
 		length := fileMeta.DataShards + fileMeta.ParityShards
 		for shardId := 0; shardId < length; shardId++ {
 			err = DataNodeClient.ECDownloadShard(fileMeta.Blocks[blockId].Shards[shardId].Hash, fileMeta.Blocks[blockId].Shards[shardId].NodeURL, buffers[shardId])
 			if err != nil {
+				buffers[shardId] = nil
+				wg.Add(1)
+				go func() {
+					DataNodeClient.RecoverShard(&model.RecoverShardParam{ //请求DataNode修复文件
+						Block:          fileMeta.Blocks[blockId],
+						ShardId:        int64(shardId),
+						DataShardNum:   fileMeta.DataShards,
+						ParityShardNum: fileMeta.ParityShards,
+						StoragePolicy:  nodeClient.StoragePolicyEC,
+					}, fileMeta.Blocks[blockId].Shards[shardId].NodeURL)
+					wg.Done()
+				}()
 				return err
 			}
 		}
 	}
 
 	err = ReconstructBuffer(buffers, destPath, fileMeta.DataShards, fileMeta.ParityShards, EC_BlockSize)
+	wg.Wait()
 	return
 }
 
@@ -183,7 +214,7 @@ func (cli *ECClient) SimpleUploadFile(fileKey string, srcPath string) (err error
 		return
 	}
 	//请求NameNode初始化上传，获取文件上传节点
-	fileMeta, err := NameNodeClient.RequestUploadFile(fileKey, backend, StoragePolicyEC, fileInfo.Size(), EC_BlockSize)
+	fileMeta, err := NameNodeClient.RequestUploadFile(fileKey, backend, nodeClient.StoragePolicyEC, fileInfo.Size(), EC_BlockSize)
 	if err != nil {
 		return
 	}

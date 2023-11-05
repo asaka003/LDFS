@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"LDFS/fileNode/logger"
+	"LDFS/dataNode/logger"
 	"LDFS/model"
 	"LDFS/nameNode/config"
 

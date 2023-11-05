@@ -1,7 +1,7 @@
 package util
 
 import (
-	"LDFS/fileNode/util"
+	"LDFS/dataNode/util"
 	"LDFS/model"
 	"LDFS/nameNode/config"
 	"bytes"

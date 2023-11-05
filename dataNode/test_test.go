@@ -1,7 +1,7 @@
 package main
 
 import (
-	"LDFS/fileNode/util"
+	"LDFS/dataNode/util"
 	"bytes"
 	"fmt"
 	"testing"

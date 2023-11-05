@@ -5,9 +5,11 @@ type DownloadShardParam struct {
 }
 
 type RecoverShardParam struct {
-	Block         Block  `json:"block"`
-	ShardId       int64  `json:"shard_id"`
-	StoragePolicy string `json:"storage_policy"`
+	Block          *Block `json:"block"`
+	ShardId        int64  `json:"shard_id"`
+	DataShardNum   int    `json:"data_shard_num"`   //EC模式下可用
+	ParityShardNum int    `json:"parity_shard_num"` //EC模式下可用
+	StoragePolicy  string `json:"storage_policy"`
 }
 
 type RequestUploadFileParams struct {

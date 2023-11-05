@@ -221,3 +221,34 @@ func (nameNodeClient *NameNodeHttpClient) GetAllFileKeys(backend string) (fileLi
 
 	return result, nil
 }
+
+//恢复文件数据
+func (dataNodeClient *DataNodeHttpClient) RecoverShard(opt *model.RecoverShardParam, backend string) (err error) {
+	URL := backend + dataNodeClient.recoverShardUrl
+
+	requestBodyBytes, err := json.Marshal(opt)
+	if err != nil {
+		return
+	}
+	// 创建 HTTP 请求
+	req, err := http.NewRequest("POST", URL, bytes.NewBuffer(requestBodyBytes))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	// 发送 HTTP 请求
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	// 检查响应状态码
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("get fileKeys list failed with status " + resp.Status)
+	}
+
+	return nil
+}

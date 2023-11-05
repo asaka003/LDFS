@@ -17,7 +17,4 @@ const (
 	Copy_BlockSize int64 = 16 * 1024 * 1024
 	EC_BlockSize   int64 = 128 * 1024 * 1024
 	EC_ShardSize   int64 = 16 * 1024 * 1024
-
-	StoragePolicyEC   string = "EC"
-	StoragePolicyCopy string = "cpoy"
 )
