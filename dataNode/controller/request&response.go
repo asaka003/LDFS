@@ -87,8 +87,5 @@ func ResponseErr(c *gin.Context, code ResCode) {
 
 //cos正确返回
 func ResponseSuc(c *gin.Context, data interface{}) {
-	c.JSON(http.StatusOK, gin.H{
-		"msg":  CodeSuccess.Msg(),
-		"data": data,
-	})
+	c.JSON(http.StatusOK, data)
 }

@@ -278,5 +278,6 @@ func (dataNodeClient *DataNodeHttpClient) GetStorageInfo(backend string) (dataNo
 	if err != nil {
 		return
 	}
+	dataNodeInfo.URL = backend
 	return
 }

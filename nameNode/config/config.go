@@ -73,7 +73,6 @@ func ConfigInit() (err error) {
 	ECDataShardNum = viper.GetInt64("EC.dataShards")
 	ECParityShardNum = viper.GetInt64("EC.parityShards")
 	CopyReplicasNum = viper.GetInt64("Copy.replicasNum")
-
 	HttpApiServerHost = viper.GetString("HttpApiServerHost")
 
 	// 种子随机数生成器
@@ -84,11 +83,11 @@ func ConfigInit() (err error) {
 
 func printStorageInfo() {
 	for i, dataNode := range DataNodeList {
-		fmt.Printf("dataNode%v节点地址:%s", i, dataNode.URL)
-		fmt.Println(dataNode.NodeDiskAvailableSize)
-		fmt.Println(dataNode.NodeDiskSize)
-		fmt.Println(dataNode.NodeDiskUsedSize)
-		fmt.Println(dataNode.NodeFileTotalSize)
+		fmt.Printf("dataNode%v节点地址:%s\n", i, dataNode.URL)
+		fmt.Println("free:", dataNode.NodeDiskAvailableSize)
+		fmt.Println("total:", dataNode.NodeDiskSize)
+		fmt.Println("used:", dataNode.NodeDiskUsedSize)
+		fmt.Println("fileTotal:", dataNode.NodeFileTotalSize)
 		fmt.Println("")
 	}
 }
