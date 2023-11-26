@@ -13,7 +13,7 @@ type FileMetadata struct {
 	ParityShards  int       `json:"parity_shards"`
 	StoragePolicy string    `json:"storage_policy"` //存储策略  EC表示纠删码模式,copy表示副本冗余模式
 	Blocks        []*Block  `json:"blocks"`
-	EncodingTime  time.Time `json:"encoding_time"`
+	CreateTime    time.Time `json:"create_time"`
 	Status        string    `json:"status"`
 }
 

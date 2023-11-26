@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -73,6 +74,7 @@ func RequestUploadFile(c *gin.Context) {
 	fileMeta.FileKey = params.FileKey
 	fileMeta.StoragePolicy = params.StoragePolicy
 	fileMeta.FileSize = params.FileSize
+	fileMeta.CreateTime = time.Now()
 
 	result := &model.RequestUploadFileResponse{
 		FileMeta: fileMeta,
