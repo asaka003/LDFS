@@ -1,33 +1,23 @@
-mysql:
-  host: "127.0.0.1"
-  port: "3306"
-  user: "root"
-  password: "123456"
-  dbname: "LDFS"
-  maxOpenConns: 20
-	maxIdleConns: 5
-
-
-redis:
-  host: "127.0.0.1"
-  password: "123456"
-  port: "6379"
-  poolSize: 10
-  db: 0
-
-sqlite:
-  dialect: "sqlite3"
-  dbfile: "LDFS.db"
-
-SYSTEM_DB: "sqlite"  # "mysql" | "redis"
-
 EC:  #RS校验码参数，默认三个数据快和两个校验块
-  dataShards: 3
-	parityShards: 2
+ dataShards: 3
+ parityShards: 2
 
 Copy:
-  replicasNum: 3 #默认副本数量为3
+ replicasNum: 3 #默认副本数量为3
 
 
 MultiUploadDir: "/tmp/LDFS/"   #分块上传文件的临时保存目录
 FileMetaDir: "./FileMetas/"  #存储文件meta信息的目录
+
+
+DataNodes:
+  List: [
+    "http://0.0.0.0:9091",
+    "http://0.0.0.0:9092",
+    "http://0.0.0.0:9093",
+    "http://0.0.0.0:9094",
+    "http://0.0.0.0:9095",
+    "http://0.0.0.0:9096",
+  ]
+
+HttpApiServerHost: "0.0.0.0:9090"

@@ -6,7 +6,10 @@ import (
 )
 
 func main() {
-	config.ConfigInit()
+	err := config.ConfigInit()
+	if err != nil {
+		panic(err)
+	}
 
 	//启动http路由服务
 	r := route.SetRoute()

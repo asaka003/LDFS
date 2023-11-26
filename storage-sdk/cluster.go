@@ -13,8 +13,10 @@ var (
 )
 
 func InitCluster(nodes []string) {
+	nameNodeCluster = &NameNodeCluster{
+		Consistent: consistent.New(),
+	}
 	for _, node := range nodes {
-		nameNodeCluster.Consistent.Add(node)
 		nameNodeCluster.Consistent.Add(node)
 	}
 }

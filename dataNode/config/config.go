@@ -4,6 +4,8 @@ import (
 	"LDFS/nodeClient"
 	"fmt"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -36,7 +38,15 @@ func ConfigInit() error {
 	AddrHttpLocalServer = viper.GetString("node.http_ip")
 
 	RecoveringShardHash = new(sync.Map)
-	ShardsDir = viper.GetString("Data.shardsDir")
+	ShardsDir = filepath.Join(viper.GetString("Data.shardsDir"), viper.GetString("node.name"))
+	//创建目录
+	_, err = os.Stat(ShardsDir)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll(ShardsDir, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
 
 	// 种子随机数生成器
 	rand.Seed(time.Now().UnixNano())

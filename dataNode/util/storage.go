@@ -3,93 +3,101 @@ package util
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
-	"strings"
+
+	"github.com/shirou/gopsutil/disk"
 )
 
+//获取磁盘使用情况
+func GetDiskUsageInfo() (total int64, free int64, used int64, err error) {
+	partitions, err := disk.Partitions(false)
+	if err != nil {
+		return
+	}
+	for _, p := range partitions {
+		usage, err := disk.Usage(p.Mountpoint)
+		if err != nil {
+			return 0, 0, 0, err
+		}
+		total += int64(usage.Total)
+		free += int64(usage.Free)
+		used += int64(usage.Used)
+	}
+	return
+}
+
 // GetDirectorySize 到所有文件的大小，以字节（Bytes）为单位
-func GetDirectorySize(path string) (int64, error) {
-	var size int64
-	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+func GetDirectorySize(dirPath string) (size int64, err error) {
+	err = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
 			size += info.Size()
 		}
-		return err
+		return nil
 	})
-	return size, err
+	return
 }
 
-//获取整个系统的磁盘大小
-func GetSystemDiskSize() (int64, error) {
-	var cmd *exec.Cmd
+// //获取整个系统的磁盘大小
+// func GetSystemDiskSize() (int64, error) {
+// 	var cmd *exec.Cmd
+// 	if runtime.GOOS == "linux" {
+// 		cmd = exec.Command("df", "-h")
+// 	} else if runtime.GOOS == "windows" {
+// 		cmd = exec.Command("wmic", "logicaldisk", "get", "size")
+// 	} else {
+// 		return 0, fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
+// 	}
+// 	output, err := cmd.Output()
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	if runtime.GOOS == "linux" {
+// 		return parseLinuxDiskSize(string(output))
+// 	} else if runtime.GOOS == "windows" {
+// 		return parseWindowsDiskSize(string(output))
+// 	}
+// 	return 0, fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
+// }
 
-	if runtime.GOOS == "linux" {
-		cmd = exec.Command("df", "-h")
-	} else if runtime.GOOS == "windows" {
-		cmd = exec.Command("wmic", "logicaldisk", "get", "size")
-	} else {
-		return 0, fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
-	}
+// // 解析Linux系统下的磁盘大小
+// func parseLinuxDiskSize(output string) (int64, error) {
+// 	lines := strings.Split(output, "\n")
+// 	if len(lines) < 2 {
+// 		return 0, fmt.Errorf("failed to parse df output")
+// 	}
+// 	fields := strings.Fields(lines[1])
+// 	if len(fields) < 2 {
+// 		return 0, fmt.Errorf("failed to parse df output")
+// 	}
+// 	// 解析磁盘总大小（以字节为单位）
+// 	diskSizeStr := fields[1]
+// 	diskSize, err := parseSizeString(diskSizeStr)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	return diskSize, nil
+// }
 
-	output, err := cmd.Output()
-	if err != nil {
-		return 0, err
-	}
-
-	if runtime.GOOS == "linux" {
-		return parseLinuxDiskSize(string(output))
-	} else if runtime.GOOS == "windows" {
-		return parseWindowsDiskSize(string(output))
-	}
-
-	return 0, fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
-}
-
-// 解析Linux系统下的磁盘大小
-func parseLinuxDiskSize(output string) (int64, error) {
-	lines := strings.Split(output, "\n")
-	if len(lines) < 2 {
-		return 0, fmt.Errorf("failed to parse df output")
-	}
-
-	fields := strings.Fields(lines[1])
-	if len(fields) < 2 {
-		return 0, fmt.Errorf("failed to parse df output")
-	}
-
-	// 解析磁盘总大小（以字节为单位）
-	diskSizeStr := fields[1]
-	diskSize, err := parseSizeString(diskSizeStr)
-	if err != nil {
-		return 0, err
-	}
-
-	return diskSize, nil
-}
-
-// 解析Windows系统下的磁盘大小
-func parseWindowsDiskSize(output string) (diskSize int64, err error) {
-	lines := strings.Split(output, "\n")
-	if len(lines) < 2 {
-		return 0, fmt.Errorf("failed to parse wmic output")
-	}
-
-	// 解析磁盘总大小（以字节为单位）
-	for i := 1; i < len(lines); i++ {
-		diskSizeStr := strings.TrimSpace(lines[i])
-		if diskSizeStr == "" {
-			continue
-		}
-		diskSize, err = strconv.ParseInt(diskSizeStr, 10, 64)
-		if err != nil {
-			return 0, err
-		}
-	}
-	return diskSize, nil
-}
+// // 解析Windows系统下的磁盘大小
+// func parseWindowsDiskSize(output string) (diskSize int64, err error) {
+// 	lines := strings.Split(output, "\n")
+// 	if len(lines) < 2 {
+// 		return 0, fmt.Errorf("failed to parse wmic output")
+// 	}
+// 	// 解析磁盘总大小（以字节为单位）
+// 	for i := 1; i < len(lines); i++ {
+// 		diskSizeStr := strings.TrimSpace(lines[i])
+// 		if diskSizeStr == "" {
+// 			continue
+// 		}
+// 		diskSize, err = strconv.ParseInt(diskSizeStr, 10, 64)
+// 		if err != nil {
+// 			return 0, err
+// 		}
+// 	}
+// 	return diskSize, nil
+// }
 
 // 解析带有单位的大小字符串，如 "10G"、"200M" 等
 func parseSizeString(sizeStr string) (int64, error) {

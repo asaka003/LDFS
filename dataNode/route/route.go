@@ -18,7 +18,7 @@ func SetRoute() *gin.Engine {
 		api.POST("/ECdownloadShard", controller.ECDownloadShard)
 
 		api.POST("/recoverShard", controller.RecoverShard)
-		api.POST("/getStorageInfo", controller.GetStorageInfo)
+		api.GET("/getStorageInfo", controller.GetStorageInfo)
 
 	}
 

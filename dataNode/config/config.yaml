@@ -3,7 +3,7 @@ app:
   mode: "dev"
 
 node:
-  name: "local_1"
+  name: "dataNode-1"
   http_ip: "0.0.0.0:8084"
 
 Data:

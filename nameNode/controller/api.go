@@ -83,7 +83,7 @@ func RequestUploadFile(c *gin.Context) {
 	//dataNodeLen := len(config.DataNodeList)
 	availableDataNodeList := make([]model.DataNode, 0)
 	for _, dataNode := range config.DataNodeList {
-		if dataNode.NodeDiskSize-dataNode.NodeDiskUsedSize-config.RemainSize > params.FileSize {
+		if int64(dataNode.NodeDiskAvailableSize)-config.RemainSize > params.FileSize {
 			availableDataNodeList = append(availableDataNodeList, dataNode)
 		}
 	}

@@ -11,11 +11,12 @@ import (
 
 var (
 	ErrNotFoundUrl = errors.New("URL不存在或未初始化配置")
+	ErrRequestErr  = errors.New("请求出错")
 )
 
 const (
 	StoragePolicyEC   string = "EC"
-	StoragePolicyCopy string = "cpoy"
+	StoragePolicyCopy string = "copy"
 )
 
 //NameNodeHttpClient
@@ -64,6 +65,10 @@ func (nameNodeClient *NameNodeHttpClient) GetDataNodeListInfo(backendUrl string)
 		return
 	}
 	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		err = errors.New("Get DataNode List Info failed with status " + res.Status)
+		return
+	}
 	resBytes, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return
@@ -104,7 +109,7 @@ func (nameNodeClient *NameNodeHttpClient) CompleteSampleUpload(fileKey, backendU
 
 	// 检查响应状态码
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("upload initiation failed with status " + resp.Status)
+		return errors.New("Complete Sample Upload failed with status " + resp.Status)
 	}
 	return
 }
@@ -119,7 +124,7 @@ func (nameNodeClient *NameNodeHttpClient) GetFileMate(fileKey, backendUrl string
 	defer res.Body.Close()
 	// 检查响应状态码
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New("file download failed with status " + res.Status)
+		return nil, errors.New("Get FileMate failed with status " + res.Status)
 	}
 	fileMetaBytes, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -166,7 +171,7 @@ func (nameNodeClient *NameNodeHttpClient) RequestUploadFile(fileKey, backend, st
 
 	// 检查响应状态码
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("list parts failed with status " + resp.Status)
+		return nil, errors.New("Request UploadFile failed with status " + resp.Status)
 	}
 
 	// 解析响应体
@@ -247,8 +252,31 @@ func (dataNodeClient *DataNodeHttpClient) RecoverShard(opt *model.RecoverShardPa
 
 	// 检查响应状态码
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("get fileKeys list failed with status " + resp.Status)
+		return errors.New("Recover Shard failed with status " + resp.Status)
 	}
 
 	return nil
+}
+
+//获取DataNode存储信息
+func (dataNodeClient *DataNodeHttpClient) GetStorageInfo(backend string) (dataNodeInfo model.DataNode, err error) {
+	res, err := http.Get(backend + dataNodeClient.getStorageInfoUrl)
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		err = errors.New("Get Storage Info failed with status " + res.Status)
+		return
+	}
+	resBytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return
+	}
+	dataNodeInfo = model.DataNode{}
+	err = json.Unmarshal(resBytes, &dataNodeInfo)
+	if err != nil {
+		return
+	}
+	return
 }

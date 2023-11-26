@@ -33,6 +33,7 @@ func SetRoute() *gin.Engine {
 		api.POST("/completeSampleUpload", controller.CompleteSampleUpload)
 
 		api.POST("/getDataNodeListInfo", controller.GetDataNodeListInfo)
+		api.POST("/addDataNode", controller.AddDataNode)
 	}
 
 	return r
