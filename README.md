@@ -23,6 +23,8 @@ LDFS，轻量级的分布式存储系统
 - 支持go的SDK调用
 
 ## Quick start
+- 执行以下命令启动部署，随后运行example目录中的测试脚本即可
+### Windows 
 ```shell
 NameNode.exe -haddr localhost:11001 -raddr localhost:12001 -id NameNode1 -metadir LDFS/name-node1/meta LDFS/name-node1/db
 NameNode.exe -haddr localhost:11002 -raddr localhost:12002 -id NameNode2 -metadir LDFS/name-node2/meta -join localhost:11001 LDFS/name-node2/db
@@ -31,6 +33,16 @@ NameNode.exe -haddr localhost:11003 -raddr localhost:12003 -id NameNode3 -metadi
 DataNode.exe -haddr localhost:13001 -joinND localhost:11001 -id DataNode1 -shardsDir LDFS/data-node1/stards
 DataNode.exe -haddr localhost:13002 -joinND localhost:11001 -id DataNode2 -shardsDir LDFS/data-node2/stards
 DataNode.exe -haddr localhost:13003 -joinND localhost:11001 -id DataNode3 -shardsDir LDFS/data-node3/stards
+```
+### Linux
+```shell
+NameNode -haddr localhost:11001 -raddr localhost:12001 -id NameNode1 -metadir LDFS/name-node1/meta LDFS/name-node1/db
+NameNode -haddr localhost:11002 -raddr localhost:12002 -id NameNode2 -metadir LDFS/name-node2/meta -join localhost:11001 LDFS/name-node2/db
+NameNode -haddr localhost:11003 -raddr localhost:12003 -id NameNode3 -metadir LDFS/name-node3/meta -join localhost:11001 LDFS/name-node3/db
+
+DataNode -haddr localhost:13001 -joinND localhost:11001 -id DataNode1 -shardsDir LDFS/data-node1/stards
+DataNode -haddr localhost:13002 -joinND localhost:11001 -id DataNode2 -shardsDir LDFS/data-node2/stards
+DataNode -haddr localhost:13003 -joinND localhost:11001 -id DataNode3 -shardsDir LDFS/data-node3/stards
 ```
 
 ## 未来计划
