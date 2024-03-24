@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"github.com/natefinch/lumberjack"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -17,7 +16,8 @@ func InitLog() {
 	encoder := getEncoder()
 
 	var core zapcore.Core
-	mode := viper.GetString("app.mode")
+	// mode := viper.GetString("app.mode")
+	mode := "dev"
 	if mode == "dev" {
 		//开发模式，日志输出到终端
 		consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
@@ -39,11 +39,14 @@ func InitLog() {
 //使用日志切割
 func getLogWriter() zapcore.WriteSyncer {
 	lumberJackLogger := &lumberjack.Logger{
-		Filename:   "./test.log",
-		MaxSize:    viper.GetInt("log.max_size"),    //M
-		MaxBackups: viper.GetInt("log.max_backups"), //最大备份数量
-		MaxAge:     viper.GetInt("log.max_age"),     //最大保存天数
-		Compress:   false,                           //是否进行压缩
+		Filename: "./test.log",
+		// MaxSize:    viper.GetInt("log.max_size"),    //M
+		// MaxBackups: viper.GetInt("log.max_backups"), //最大备份数量
+		// MaxAge:     viper.GetInt("log.max_age"),     //最大保存天数
+		MaxSize:    10,    //M
+		MaxBackups: 5,     //最大备份数量
+		MaxAge:     2,     //最大保存天数
+		Compress:   false, //是否进行压缩
 	}
 	return zapcore.AddSync(lumberJackLogger)
 }

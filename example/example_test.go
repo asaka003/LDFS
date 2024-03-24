@@ -17,7 +17,7 @@ func Test_example(t *testing.T) {
 	}
 }
 
-func Test_main6(t *testing.T) {
+func Test_main7(t *testing.T) {
 	client := storagesdk.NewReplicasClient([]string{
 		"http://localhost:11001",
 	})

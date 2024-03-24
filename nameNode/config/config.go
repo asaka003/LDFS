@@ -2,79 +2,29 @@ package config
 
 import (
 	"LDFS/nodeClient"
-	"fmt"
 	"math/rand"
 	"time"
-
-	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/viper"
 )
 
 var (
-	//读取文件个各节点的IP地址
-	//DataNodeList   []model.DataNode
-	//DataNodeUrls   []string
 	DataNodeClient *nodeClient.DataNodeHttpClient
 
-	FileMetaDir string
+	FileMetaDir string = "LDFS/name-node/meta" //存储文件meta信息的目录
 
-	ECDataShardNum   int64
-	ECParityShardNum int64
-	CopyReplicasNum  int64
-
-	// HttpApiServerHost string
+	ECDataShardNum   int64 = 3 //RS校验码参数，默认三个数据快和两个校验块
+	ECParityShardNum int64 = 2
+	CopyReplicasNum  int64 = 3 //默认副本数量为3
 )
 
 const (
-	RemainSize int64 = 100 * 1024 * 1024
+	RemainSize int64 = 100 * 1024 * 1024 //系统保留空间，不会被存储系统使用
 )
-
-//初始化配置读取器viper
-func viperInit() error {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./config")
-	err := viper.ReadInConfig()
-	if err != nil {
-		fmt.Printf("viper.ReadConfig() failed : %s", err)
-		return err
-	}
-
-	viper.WatchConfig()
-	viper.OnConfigChange(func(in fsnotify.Event) {
-		//设置配置文件修改后的动态绑定事件......
-		fmt.Println("配置文件改变")
-	})
-	return nil
-}
 
 //初始化所有配置信息
 func ConfigInit() (err error) {
-	err = viperInit()
-	if err != nil {
-		return err
-	}
-	FileMetaDir = viper.GetString("FileMetaDir")
 	DataNodeClient = nodeClient.GetDataNodeHttpClient()
-	// DataNodeUrls = viper.GetStringSlice("DataNodes.List")
-	// for _, url := range DataNodeUrls {
-	// 	//请求DataNode 磁盘存储情况
-	// 	dataNode, err := DataNodeClient.GetStorageInfo(url)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	DataNodeList = append(DataNodeList, dataNode)
-	// }
-	// printStorageInfo()
-
-	ECDataShardNum = viper.GetInt64("EC.dataShards")
-	ECParityShardNum = viper.GetInt64("EC.parityShards")
-	CopyReplicasNum = viper.GetInt64("Copy.replicasNum")
-	// HttpApiServerHost = viper.GetString("HttpApiServerHost")
-
 	// 种子随机数生成器
 	rand.Seed(time.Now().UnixNano())
-
 	return
 }
 

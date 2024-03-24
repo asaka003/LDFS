@@ -36,6 +36,9 @@ func init() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] <raft-data-path> \n", os.Args[0])
 		flag.PrintDefaults()
 	}
+	flag.Int64Var(&config.ECDataShardNum, "d", config.ECDataShardNum, "set the number of RS data shard")
+	flag.Int64Var(&config.ECParityShardNum, "p", config.ECDataShardNum, "set the number of RS parity shard")
+	flag.Int64Var(&config.CopyReplicasNum, "r", config.CopyReplicasNum, "set the number of replicas")
 }
 
 func main() {

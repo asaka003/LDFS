@@ -22,6 +22,17 @@ LDFS，轻量级的分布式存储系统
 ## SDK
 - 支持go的SDK调用
 
+## Quick start
+```shell
+NameNode.exe -haddr localhost:11001 -raddr localhost:12001 -id NameNode1 -metadir LDFS/name-node1/meta LDFS/name-node1/db
+NameNode.exe -haddr localhost:11002 -raddr localhost:12002 -id NameNode2 -metadir LDFS/name-node2/meta -join localhost:11001 LDFS/name-node2/db
+NameNode.exe -haddr localhost:11003 -raddr localhost:12003 -id NameNode3 -metadir LDFS/name-node3/meta -join localhost:11001 LDFS/name-node3/db
+
+DataNode.exe -haddr localhost:13001 -joinND localhost:11001 -id DataNode1 -shardsDir LDFS/data-node1/stards
+DataNode.exe -haddr localhost:13002 -joinND localhost:11001 -id DataNode2 -shardsDir LDFS/data-node2/stards
+DataNode.exe -haddr localhost:13003 -joinND localhost:11001 -id DataNode3 -shardsDir LDFS/data-node3/stards
+```
+
 ## 未来计划
 - 提供更多语言版本的SDK调用，优化部分代码
 
