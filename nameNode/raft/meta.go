@@ -2,12 +2,14 @@ package raft
 
 import (
 	"LDFS/model"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,18 +23,26 @@ import (
 const (
 	retainSnapshotCount = 2
 	raftTimeout         = 10 * time.Second
+
+	CommandCreateFileMeta = "create-meta"
+	CommandDeleteFileMeta = "delete-meta"
+	CommandUpdateFileMeta = "update-meta"
+
+	CommandAddDataNode = "add-dataNode"
 )
 
 type FileMeta model.FileMetadata
 
 type RaftNode struct {
-	RaftDir    string     //raft节点状态目录
-	MetaDir    string     //文件meta信息目录
-	RaftBind   string     //raft协议交互地址
-	mu         sync.Mutex //锁用于控制文件meta操作的并发
-	fileMutexs map[string]*sync.RWMutex
-	raft       *raft.Raft //raft算法核心组件
-	logger     *log.Logger
+	RaftDir     string     //raft节点状态目录
+	MetaDir     string     //文件meta信息目录
+	RaftBind    string     //raft协议交互地址
+	mu          sync.Mutex //锁用于控制文件meta操作的并发
+	fileMutexs  map[string]*sync.RWMutex
+	raft        *raft.Raft //raft算法核心组件
+	logger      *log.Logger
+	DataNodeSet map[string]*model.DataNode //管理的dataNode列表
+	//DataNodeList []*model.DataNode
 }
 
 //获取文件meta信息
@@ -70,7 +80,7 @@ func (node *RaftNode) CreateFileMeta(key string, meta *FileMeta) (err error) {
 	}
 
 	c := &command{
-		Op:   "create",
+		Op:   CommandCreateFileMeta,
 		Key:  key,
 		Meta: meta,
 	}
@@ -93,7 +103,7 @@ func (node *RaftNode) UpdateFileMeta(key string, meta *FileMeta) (err error) {
 	}
 
 	c := &command{
-		Op:   "update",
+		Op:   CommandUpdateFileMeta,
 		Key:  key,
 		Meta: meta,
 	}
@@ -116,7 +126,7 @@ func (node *RaftNode) DeleteFileMeta(key string) (err error) {
 	}
 
 	c := &command{
-		Op:   "delete",
+		Op:   CommandDeleteFileMeta,
 		Key:  key,
 		Meta: nil,
 	}
@@ -128,11 +138,76 @@ func (node *RaftNode) DeleteFileMeta(key string) (err error) {
 	return f.Error()
 }
 
-func New() *RaftNode {
-	return &RaftNode{
-		fileMutexs: make(map[string]*sync.RWMutex),
-		logger:     log.New(os.Stderr, "[NameNode] ", log.LstdFlags),
+//获取DataNode节点信息
+func (node *RaftNode) GetDataNodeList() []*model.DataNode {
+	node.mu.Lock()
+	defer node.mu.Unlock()
+	dataNodeList := make([]*model.DataNode, len(node.DataNodeSet))
+	i := 0
+	for _, v := range node.DataNodeSet {
+		dataNodeList[i] = v
+		i++
 	}
+	fmt.Println(dataNodeList)
+	return dataNodeList
+}
+
+//添加DataNode节点，如果节点存在则，更新对应的节点数据
+func (node *RaftNode) AddDataNode(dataNode *model.DataNode) (err error) {
+	if node.raft.State() != raft.Leader {
+		return fmt.Errorf("not leader")
+	}
+	c := &command{
+		Op:       CommandAddDataNode,
+		DataNode: dataNode,
+	}
+	b, err := json.Marshal(c)
+	if err != nil {
+		return err
+	}
+	f := node.raft.Apply(b, raftTimeout)
+	return f.Error()
+}
+
+//加入NameNode节点集群
+func join(joinAddr, raftAddr, nodeID string) error {
+	b, err := json.Marshal(model.ParamJoin{
+		RaftAddr: raftAddr,
+		ID:       nodeID,
+	})
+	if err != nil {
+		return err
+	}
+	resp, err := http.Post(fmt.Sprintf("http://%s/LDFS/join", joinAddr), "application-type/json", bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
+}
+
+func New(raftDir, metadir, raftAddr, joinAddr, nodeID string) (err error) {
+	RaftNodeClient = &RaftNode{
+		fileMutexs:  make(map[string]*sync.RWMutex),
+		logger:      log.New(os.Stderr, "[NameNode] ", log.LstdFlags),
+		RaftDir:     raftDir,
+		MetaDir:     metadir,
+		RaftBind:    raftAddr,
+		DataNodeSet: make(map[string]*model.DataNode),
+	}
+	if err := RaftNodeClient.Open(joinAddr == "", nodeID); err != nil {
+		log.Fatalf("failed to open store: %s", err.Error())
+		return err
+	}
+	// If join was specified, make the join request.
+	if joinAddr != "" {
+		if err := join(joinAddr, raftAddr, nodeID); err != nil {
+			log.Fatalf("failed to join node at %s: %s", joinAddr, err.Error())
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *RaftNode) Open(enableSingle bool, localID string) error {
@@ -229,9 +304,10 @@ func (s *RaftNode) Join(nodeID, addr string) error {
 type fsm RaftNode
 
 type command struct {
-	Op   string    `json:"op,omitempty"`
-	Key  string    `json:"key,omitempty"`
-	Meta *FileMeta `json:"file_meta,omitempty"`
+	Op       string          `json:"op,omitempty"`
+	Key      string          `json:"key,omitempty"`
+	Meta     *FileMeta       `json:"file_meta,omitempty"`
+	DataNode *model.DataNode `json:"data_node,omitempty"`
 }
 
 // Apply applies a Raft log entry to the key-value store.
@@ -242,12 +318,14 @@ func (f *fsm) Apply(l *raft.Log) interface{} {
 	}
 
 	switch c.Op {
-	case "create":
+	case CommandCreateFileMeta:
 		return f.applyCreateMeta(c.Key, c.Meta)
-	case "Update":
+	case CommandUpdateFileMeta:
 		return f.applyUpdateMeta(c.Key, c.Meta)
-	case "delete":
+	case CommandDeleteFileMeta:
 		return f.applyDeleteMeta(c.Key)
+	case CommandAddDataNode:
+		return f.applyAddDataNode(c.DataNode)
 	default:
 		panic(fmt.Sprintf("unrecognized command op: %s", c.Op))
 	}
@@ -321,6 +399,14 @@ func (f *fsm) applyDeleteMeta(key string) interface{} {
 	path := filepath.Join(f.MetaDir, key)
 	err := os.Remove(path)
 	return err
+}
+
+func (f *fsm) applyAddDataNode(dataNode *model.DataNode) interface{} {
+	f.mu.Lock()
+	f.DataNodeSet[dataNode.URL] = dataNode
+	f.mu.Unlock()
+	log.Printf("new DataNode(host:%s name:%s nodedisk:%d free:%d) Join in", dataNode.URL, dataNode.NodeName, dataNode.NodeDiskSize, dataNode.NodeDiskAvailableSize)
+	return nil
 }
 
 type fsmSnapshot struct{}

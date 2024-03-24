@@ -63,7 +63,7 @@ func (dataNodeClient *DataNodeHttpClient) ECUploadShardBytes(shardHash string, d
 	return nil
 }
 
-//下载数据块
+//下载数据块  (临时数据块放在内存，容易内存溢出,建议优化)
 func (dataNodeClient *DataNodeHttpClient) ECDownloadShard(shardHash, backend string, des io.Writer) (err error) {
 	URL := backend + dataNodeClient.ECdownloadShardUrl
 	// 创建请求体

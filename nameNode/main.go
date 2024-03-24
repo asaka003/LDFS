@@ -4,19 +4,16 @@ import (
 	"LDFS/nameNode/config"
 	"LDFS/nameNode/raft"
 	"LDFS/nameNode/route"
-	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 )
 
 const (
-	DefaultHTTPAddr = "localhost:11000"
-	DefaultRaftAddr = "localhost:12000"
+	DefaultHTTPAddr = "http://" + "localhost:11000"
+	DefaultRaftAddr = "http://" + "localhost:12000"
 )
 
 var httpAddr string
@@ -39,19 +36,6 @@ func init() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] <raft-data-path> \n", os.Args[0])
 		flag.PrintDefaults()
 	}
-}
-
-func join(joinAddr, raftAddr, nodeID string) error {
-	b, err := json.Marshal(map[string]string{"addr": raftAddr, "id": nodeID})
-	if err != nil {
-		return err
-	}
-	resp, err := http.Post(fmt.Sprintf("http://%s/LDFS/join", joinAddr), "application-type/json", bytes.NewReader(b))
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	return nil
 }
 
 func main() {
@@ -82,20 +66,9 @@ func main() {
 		log.Fatalf("failed to create path for Meta storage: %s", err.Error())
 	}
 
-	config.RaftNode = raft.New()
-	s := config.RaftNode
-	s.RaftDir = raftDir
-	s.MetaDir = metaDir
-	s.RaftBind = raftAddr
-	if err := s.Open(joinAddr == "", nodeID); err != nil {
-		log.Fatalf("failed to open store: %s", err.Error())
-	}
-
-	// If join was specified, make the join request.
-	if joinAddr != "" {
-		if err := join(joinAddr, raftAddr, nodeID); err != nil {
-			log.Fatalf("failed to join node at %s: %s", joinAddr, err.Error())
-		}
+	err := raft.New(raftDir, metaDir, raftAddr, joinAddr, nodeID)
+	if err != nil {
+		panic(err)
 	}
 
 	//初始化路由信息

@@ -1,8 +1,6 @@
 package config
 
 import (
-	"LDFS/model"
-	"LDFS/nameNode/raft"
 	"LDFS/nodeClient"
 	"fmt"
 	"math/rand"
@@ -12,16 +10,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-var RaftNode *raft.RaftNode
-
 var (
 	//读取文件个各节点的IP地址
-	DataNodeList   []model.DataNode
-	DataNodeUrls   []string
+	//DataNodeList   []model.DataNode
+	//DataNodeUrls   []string
 	DataNodeClient *nodeClient.DataNodeHttpClient
 
-	MultiUploadDir string
-	FileMetaDir    string
+	FileMetaDir string
 
 	ECDataShardNum   int64
 	ECParityShardNum int64
@@ -59,19 +54,18 @@ func ConfigInit() (err error) {
 	if err != nil {
 		return err
 	}
-	MultiUploadDir = viper.GetString("MultiUploadDir")
 	FileMetaDir = viper.GetString("FileMetaDir")
 	DataNodeClient = nodeClient.GetDataNodeHttpClient()
-	DataNodeUrls = viper.GetStringSlice("DataNodes.List")
-	for _, url := range DataNodeUrls {
-		//请求DataNode 磁盘存储情况
-		dataNode, err := DataNodeClient.GetStorageInfo(url)
-		if err != nil {
-			return err
-		}
-		DataNodeList = append(DataNodeList, dataNode)
-	}
-	printStorageInfo()
+	// DataNodeUrls = viper.GetStringSlice("DataNodes.List")
+	// for _, url := range DataNodeUrls {
+	// 	//请求DataNode 磁盘存储情况
+	// 	dataNode, err := DataNodeClient.GetStorageInfo(url)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	DataNodeList = append(DataNodeList, dataNode)
+	// }
+	// printStorageInfo()
 
 	ECDataShardNum = viper.GetInt64("EC.dataShards")
 	ECParityShardNum = viper.GetInt64("EC.parityShards")
@@ -84,13 +78,13 @@ func ConfigInit() (err error) {
 	return
 }
 
-func printStorageInfo() {
-	for i, dataNode := range DataNodeList {
-		fmt.Printf("dataNode%v节点地址:%s\n", i, dataNode.URL)
-		fmt.Println("free:", dataNode.NodeDiskAvailableSize)
-		fmt.Println("total:", dataNode.NodeDiskSize)
-		fmt.Println("used:", dataNode.NodeDiskUsedSize)
-		fmt.Println("fileTotal:", dataNode.NodeFileTotalSize)
-		fmt.Println("")
-	}
-}
+// func printStorageInfo() {
+// 	for i, dataNode := range DataNodeList {
+// 		fmt.Printf("dataNode%v节点地址:%s\n", i, dataNode.URL)
+// 		fmt.Println("free:", dataNode.NodeDiskAvailableSize)
+// 		fmt.Println("total:", dataNode.NodeDiskSize)
+// 		fmt.Println("used:", dataNode.NodeDiskUsedSize)
+// 		fmt.Println("fileTotal:", dataNode.NodeFileTotalSize)
+// 		fmt.Println("")
+// 	}
+// }

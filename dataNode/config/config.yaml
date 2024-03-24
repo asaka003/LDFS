@@ -2,13 +2,9 @@
 app:
   mode: "dev"
 
-node:
-  name: "dataNode-1"
-  http_ip: "0.0.0.0:8084"
-
 Data:
-  shardsDir: "./DataShards/"
-  tempDir: "./tempShards/"  #EC模式下存储临时恢复Shards目录
+  shardsDir: "LDFS/data-node/data-shards/"
+  tempDir: "LDFS/data-node/temp-shards/"  #EC模式下存储临时恢复Shards目录
 
 
 

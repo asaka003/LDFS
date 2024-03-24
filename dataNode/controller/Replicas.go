@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -25,6 +26,7 @@ func ReplicasUploadShard(c *gin.Context) {
 	block := &model.Block{}
 	err := json.Unmarshal([]byte(blockJson), block)
 	if err != nil {
+		log.Println(err)
 		ResponseErr(c, CodeInvalidParam)
 		return
 	}
@@ -70,6 +72,7 @@ func ReplicasUploadShard(c *gin.Context) {
 		io.Copy(buffer, src)
 		err = config.DataNodeClient.ReplicasUploadShard(shardHash, blockJson, buffer, block.Shards[copyNo+1].NodeURL, copyNo+1)
 		if err != nil {
+			log.Printf("failed to copy shard: %s", err.Error())
 			ResponseErr(c, CodeServerBusy)
 			return
 		}

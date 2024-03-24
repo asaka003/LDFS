@@ -14,7 +14,7 @@ import (
 /*副本冗余模式*/
 
 //上传文件数据块
-func (dataNodeClient *DataNodeHttpClient) ReplicasUploadShard(shardHash, shardJson string, data *bytes.Buffer, backend string, copyNo int64) (err error) {
+func (dataNodeClient *DataNodeHttpClient) ReplicasUploadShard(shardHash, blockJson string, data *bytes.Buffer, backend string, copyNo int64) (err error) {
 	// 创建一个管道
 	pr, pw := io.Pipe()
 	defer pr.Close()
@@ -24,7 +24,7 @@ func (dataNodeClient *DataNodeHttpClient) ReplicasUploadShard(shardHash, shardJs
 	// 在一个单独的goroutine中处理文件的写入
 	go func() {
 		defer pw.Close()
-		defer multipartWriter.Close()
+		defer multipartWriter.Close() //
 
 		// 添加"FileKey"字段
 		if err = multipartWriter.WriteField("hash", shardHash); err != nil {
@@ -32,12 +32,12 @@ func (dataNodeClient *DataNodeHttpClient) ReplicasUploadShard(shardHash, shardJs
 		}
 
 		//添加shards信息
-		if err = multipartWriter.WriteField("shardsJson", shardJson); err != nil {
+		if err = multipartWriter.WriteField("blockJson", blockJson); err != nil {
 			return
 		}
 
 		//添加copyNo信息
-		if err = multipartWriter.WriteField("copyNum", strconv.FormatInt(copyNo, 10)); err != nil {
+		if err = multipartWriter.WriteField("copyNo", strconv.FormatInt(copyNo, 10)); err != nil {
 			return
 		}
 
@@ -50,6 +50,7 @@ func (dataNodeClient *DataNodeHttpClient) ReplicasUploadShard(shardHash, shardJs
 
 		_, err = io.Copy(part, data)
 
+		multipartWriter.Close() //及时关闭，给报文添加结束行
 	}()
 
 	// 构建请求

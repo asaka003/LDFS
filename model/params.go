@@ -15,7 +15,7 @@ type RecoverShardParam struct {
 type RequestUploadFileParams struct {
 	FileKey       string `json:"file_key"`
 	FileSize      int64  `json:"file_size"`
-	BlockSize     int64  `json:"block_size"`
+	BlockSize     int64  `json:"block_size"` //设置的每个块的最大值
 	StoragePolicy string `json:"storage_policy"`
 }
 
@@ -23,7 +23,16 @@ type CompleteSampleUploadParams struct {
 	FileKey string `json:"file_key"`
 }
 
+const (
+	TypeDataNode string = "data-node"
+	TypeNameNode string = "Name-node"
+)
+
 type ParamJoin struct {
-	Addr string `json:"addr"`
-	ID   string `json:"id"`
+	RaftAddr string `json:"addr"`
+	ID       string `json:"id"`
+}
+
+type ParamJoinDataNode struct {
+	DataNodeInfo *DataNode `json:"data_node"`
 }

@@ -16,7 +16,7 @@ import (
 	"go.uber.org/zap"
 )
 
-//恢复文件块
+//恢复文件块   （文件块的操作都是在内存中，待优化）
 func RecoverShard(c *gin.Context) {
 	params := new(model.RecoverShardParam)
 	err := c.ShouldBindJSON(params)
@@ -74,11 +74,27 @@ func RecoverShard(c *gin.Context) {
 				buffers[index] = nil
 				continue
 			}
+			// tempPath := filepath.Join(config.TempDir, shard.Hash)
+			// tempFile, err := os.Create(tempPath)
+			// if err != nil {
+			// 	logger.Logger.Error("创建EC临时数据文件失败", zap.Error(err))
+			// 	ResponseErr(c, CodeServerBusy)
+			// 	return
+			// }
 			err = config.DataNodeClient.ECDownloadShard(shard.Hash, shard.NodeURL, buffers[index])
+			//err = config.DataNodeClient.ECDownloadShard(shard.Hash, shard.NodeURL, tempFile)
 			if err != nil {
 				logger.Logger.Warn("获取EC数据失败", zap.Error(err))
 				buffers[index] = nil
 			}
+			// tempFile.Close()  //关闭句柄保存文件
+			// tempFile, err = os.Open(tempPath)
+			// if err != nil{
+			// 	logger.Logger.Warn("打开EC临时数据文件失败", zap.Error(err))
+			// 	buffers[index] = nil
+			// }else{
+			// 	buffers[index] =
+			// }
 		}
 		shardPath := filepath.Join(config.ShardsDir, params.Block.Shards[params.ShardId].Hash)
 		err = storagesdk.ReconstructMissShardFile(buffers, shardPath, params.DataShardNum, params.ParityShardNum, int(params.ShardId))

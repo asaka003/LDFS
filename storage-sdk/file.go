@@ -107,7 +107,7 @@ func (cli *ReplicasClient) SimpleUploadFile(fileKey string, srcPath string) (err
 		return
 	}
 	//上传文件块
-	buf := make([]byte, Copy_BlockSize)
+	buf := make([]byte, 0) //置0,利用buffer动态扩容机制
 	buffer := bytes.NewBuffer(buf)
 	for _, block := range fileMeta.Blocks {
 		// 重置 buffer，以便重新使用
@@ -125,7 +125,7 @@ func (cli *ReplicasClient) SimpleUploadFile(fileKey string, srcPath string) (err
 		}
 		err = DataNodeClient.ReplicasUploadShard(block.Hash, string(blockJson), buffer, block.Shards[0].NodeURL, 0)
 		if err != nil {
-			return
+			return err
 		}
 	}
 	return

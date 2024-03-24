@@ -5,9 +5,7 @@ EC:  #RS校验码参数，默认三个数据快和两个校验块
 Copy:
  replicasNum: 3 #默认副本数量为3
 
-
-MultiUploadDir: "./tmp/LDFS/"   #分块上传文件的临时保存目录
-FileMetaDir: "./data/meta/"  #存储文件meta信息的目录
+FileMetaDir: "LDFS/name-node/meta"  #存储文件meta信息的目录
 
 
 DataNodes:

@@ -3,7 +3,6 @@ package util
 import (
 	"LDFS/dataNode/util"
 	"LDFS/model"
-	"LDFS/nameNode/config"
 	"LDFS/nameNode/raft"
 	"crypto/md5"
 	"encoding/hex"
@@ -48,7 +47,7 @@ func bytesMD5(data []byte) string {
 //读取文件中的fileMeta信息
 func GetFileMetaInFile(key string) (meta *model.FileMetadata, err error) {
 	key_path := util.BytesHash([]byte(key)) + ".json"
-	rmeta, err := config.RaftNode.GetFileMeta(key_path)
+	rmeta, err := raft.RaftNodeClient.GetFileMeta(key_path)
 	meta = (*model.FileMetadata)(rmeta)
 	return
 }
@@ -56,13 +55,13 @@ func GetFileMetaInFile(key string) (meta *model.FileMetadata, err error) {
 //存储文件meta信息到文件中
 func SaveFileMetaInFile(fileMeta *model.FileMetadata) (err error) {
 	//保存meta信息到文件中
-	config.RaftNode.CreateFileMeta(util.BytesHash([]byte(fileMeta.FileKey))+".json", (*raft.FileMeta)(fileMeta))
+	raft.RaftNodeClient.CreateFileMeta(util.BytesHash([]byte(fileMeta.FileKey))+".json", (*raft.FileMeta)(fileMeta))
 	return
 }
 
 //删除文件meta信息
 func DeleteFileMeta(key string) (err error) {
 	key_path := util.BytesHash([]byte(key)) + ".json"
-	err = config.RaftNode.DeleteFileMeta(key_path)
+	err = raft.RaftNodeClient.DeleteFileMeta(key_path)
 	return
 }

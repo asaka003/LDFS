@@ -4,6 +4,7 @@ import (
 	"LDFS/dataNode/logger"
 	"LDFS/model"
 	"LDFS/nameNode/config"
+	"LDFS/nameNode/raft"
 	"LDFS/nameNode/util"
 	"LDFS/nodeClient"
 	"math"
@@ -89,9 +90,9 @@ func RequestUploadFile(c *gin.Context) {
 	//获取所有能够存储block的DataNode列表
 	//dataNodeLen := len(config.DataNodeList)
 	availableDataNodeList := make([]model.DataNode, 0)
-	for _, dataNode := range config.DataNodeList {
+	for _, dataNode := range raft.RaftNodeClient.GetDataNodeList() {
 		if int64(dataNode.NodeDiskAvailableSize)-config.RemainSize > params.FileSize {
-			availableDataNodeList = append(availableDataNodeList, dataNode)
+			availableDataNodeList = append(availableDataNodeList, *dataNode)
 		}
 	}
 	if len(availableDataNodeList) == 0 { //所有的dataNode都存储满，返回错误信息
@@ -137,9 +138,15 @@ func RequestUploadFile(c *gin.Context) {
 				NodeURL: dataNode.URL,
 			})
 		}
+
+		//计算每个block对应的实际大小
+		blockSize := params.FileSize - int64(blockId)*params.BlockSize
+		if blockSize > params.BlockSize {
+			blockSize = params.BlockSize
+		}
 		fileMeta.Blocks = append(fileMeta.Blocks, &model.Block{
 			BlockId:   blockId,
-			BlockSize: params.BlockSize,
+			BlockSize: blockSize,
 			Shards:    shards,
 		})
 	}
@@ -196,11 +203,23 @@ func DeleteFile(c *gin.Context) {
 func UpdateFileName(c *gin.Context) {}
 
 //加入NameNode节点
-func JoinHandler(c *gin.Context) {
+func JoinNameNodeHandler(c *gin.Context) {
 	params := new(model.ParamJoin)
 	if err := c.ShouldBindJSON(params); err != nil {
 		ResponseErr(c, CodeInvalidParam)
 		return
 	}
-	config.RaftNode.Join(params.ID, params.Addr)
+	raft.RaftNodeClient.Join(params.ID, params.RaftAddr)
+	ResponseSuc(c, nil)
+}
+
+//加入DataNode节点
+func JoinDataNodeHandler(c *gin.Context) {
+	params := new(model.ParamJoinDataNode)
+	if err := c.ShouldBindJSON(params); err != nil {
+		ResponseErr(c, CodeInvalidParam)
+		return
+	}
+	raft.RaftNodeClient.AddDataNode(params.DataNodeInfo)
+	ResponseSuc(c, nil)
 }

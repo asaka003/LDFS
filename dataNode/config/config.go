@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -13,12 +12,10 @@ import (
 )
 
 var (
-	ShardsDir      string
-	NameNodeClient *nodeClient.NameNodeHttpClient
-	DataNodeClient *nodeClient.DataNodeHttpClient
-
-	AddrHttpLocalServer string
-
+	ShardsDir           string
+	TempDir             string
+	NameNodeClient      *nodeClient.NameNodeHttpClient
+	DataNodeClient      *nodeClient.DataNodeHttpClient
 	RecoveringShardHash *sync.Map
 )
 
@@ -35,10 +32,10 @@ func ConfigInit() error {
 
 	NameNodeClient = nodeClient.GetNameNodeHttpClient()
 	DataNodeClient = nodeClient.GetDataNodeHttpClient()
-	AddrHttpLocalServer = viper.GetString("node.http_ip")
 
 	RecoveringShardHash = new(sync.Map)
-	ShardsDir = filepath.Join(viper.GetString("Data.shardsDir"), viper.GetString("node.name"))
+	ShardsDir = viper.GetString("Data.shardsDir")
+	TempDir = viper.GetString("Data.tempDir")
 	//创建目录
 	_, err = os.Stat(ShardsDir)
 	if os.IsNotExist(err) {
