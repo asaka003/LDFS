@@ -98,17 +98,14 @@ func (cli *ReplicasClient) SimpleUploadFile(fileKey string, srcPath string) (err
 		return
 	}
 	defer file.Close()
-
 	fileInfo, err := os.Stat(srcPath)
 	if err != nil {
 		return
 	}
-
 	fileMeta, err := NameNodeClient.RequestUploadFile(fileKey, backend, nodeClient.StoragePolicyCopy, fileInfo.Size(), Copy_BlockSize)
 	if err != nil {
 		return
 	}
-
 	//上传文件块
 	buf := make([]byte, Copy_BlockSize)
 	buffer := bytes.NewBuffer(buf)
@@ -131,7 +128,6 @@ func (cli *ReplicasClient) SimpleUploadFile(fileKey string, srcPath string) (err
 			return
 		}
 	}
-
 	return
 }
 

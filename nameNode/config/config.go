@@ -2,6 +2,7 @@ package config
 
 import (
 	"LDFS/model"
+	"LDFS/nameNode/raft"
 	"LDFS/nodeClient"
 	"fmt"
 	"math/rand"
@@ -10,6 +11,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 )
+
+var RaftNode *raft.RaftNode
 
 var (
 	//读取文件个各节点的IP地址
@@ -24,7 +27,7 @@ var (
 	ECParityShardNum int64
 	CopyReplicasNum  int64
 
-	HttpApiServerHost string
+	// HttpApiServerHost string
 )
 
 const (
@@ -73,7 +76,7 @@ func ConfigInit() (err error) {
 	ECDataShardNum = viper.GetInt64("EC.dataShards")
 	ECParityShardNum = viper.GetInt64("EC.parityShards")
 	CopyReplicasNum = viper.GetInt64("Copy.replicasNum")
-	HttpApiServerHost = viper.GetString("HttpApiServerHost")
+	// HttpApiServerHost = viper.GetString("HttpApiServerHost")
 
 	// 种子随机数生成器
 	rand.Seed(time.Now().UnixNano())

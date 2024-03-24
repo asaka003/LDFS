@@ -22,3 +22,8 @@ type RequestUploadFileParams struct {
 type CompleteSampleUploadParams struct {
 	FileKey string `json:"file_key"`
 }
+
+type ParamJoin struct {
+	Addr string `json:"addr"`
+	ID   string `json:"id"`
+}

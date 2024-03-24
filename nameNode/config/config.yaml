@@ -6,8 +6,8 @@ Copy:
  replicasNum: 3 #默认副本数量为3
 
 
-MultiUploadDir: "/tmp/LDFS/"   #分块上传文件的临时保存目录
-FileMetaDir: "./FileMetas/"  #存储文件meta信息的目录
+MultiUploadDir: "./tmp/LDFS/"   #分块上传文件的临时保存目录
+FileMetaDir: "./data/meta/"  #存储文件meta信息的目录
 
 
 DataNodes:
@@ -20,4 +20,5 @@ DataNodes:
     "http://0.0.0.0:9096",
   ]
 
-HttpApiServerHost: "0.0.0.0:9090"
+#HttpApiServerHost: "0.0.0.0:9090"
+

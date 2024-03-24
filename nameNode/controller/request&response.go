@@ -67,20 +67,6 @@ func (c ResCode) Msg() string {
 	return c.ResMsg
 }
 
-// // GetCurrentUser 获取当前用户ID
-// func GetCurrentUser(c *gin.Context) (UserID int64, err error) {
-// 	uid, ok := c.Get(CtxUserIDKey)
-// 	if !ok {
-// 		return 0, ErrorUserNotLogin
-// 	}
-
-// 	UserID, ok = uid.(int64)
-// 	if !ok {
-// 		return 0, ErrorMiddlewareParams
-// 	}
-// 	return UserID, nil
-// }
-
 //错误返回
 func ResponseErr(c *gin.Context, code ResCode) {
 	c.JSON(code.Code, gin.H{
@@ -90,8 +76,5 @@ func ResponseErr(c *gin.Context, code ResCode) {
 
 //正确返回
 func ResponseSuc(c *gin.Context, data interface{}) {
-	c.JSON(http.StatusOK, gin.H{
-		"msg":  CodeSuccess.Msg(),
-		"data": data,
-	})
+	c.JSON(http.StatusOK, data)
 }

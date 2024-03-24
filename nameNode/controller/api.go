@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -53,16 +54,20 @@ func GetAllFileKeys(c *gin.Context) {
 //根据fileKey获取文件Meta信息
 func GetFileMetaByFileKey(c *gin.Context) {
 	fileKey := c.Param("fileKey")
-	metaPath := filepath.Join(config.FileMetaDir, util.BytesHash([]byte(fileKey))+".json")
-	fileMeta, err := util.GetFileMetaInFile(metaPath)
+	if strings.Contains(fileKey, "..") {
+		ResponseErr(c, CodeInvalidParam)
+		return
+	}
+	fileMeta, err := util.GetFileMetaInFile(fileKey)
 	if err != nil {
 		logger.Logger.Error("读取fileMeta文件信息失败", zap.Error(err))
+		ResponseErr(c, CodeServerBusy)
 		return
 	}
 	ResponseSuc(c, fileMeta)
 }
 
-//请求上传文件
+//请求上传文件  (秒传优化)
 func RequestUploadFile(c *gin.Context) {
 	params := new(model.RequestUploadFileParams)
 	err := c.ShouldBindJSON(params)
@@ -169,4 +174,33 @@ func CompleteSampleUpload(c *gin.Context) {
 		return
 	}
 	ResponseSuc(c, nil)
+}
+
+//删除文件信息
+func DeleteFile(c *gin.Context) {
+	fileKey := c.Param("fileKey")
+	if strings.Contains(fileKey, "..") {
+		ResponseErr(c, CodeInvalidParam)
+		return
+	}
+	err := util.DeleteFileMeta(fileKey)
+	if err != nil {
+		logger.Logger.Error("删除fileMeta文件信息失败", zap.Error(err))
+		ResponseErr(c, CodeServerBusy)
+		return
+	}
+	ResponseSuc(c, nil)
+}
+
+//修改文件名
+func UpdateFileName(c *gin.Context) {}
+
+//加入NameNode节点
+func JoinHandler(c *gin.Context) {
+	params := new(model.ParamJoin)
+	if err := c.ShouldBindJSON(params); err != nil {
+		ResponseErr(c, CodeInvalidParam)
+		return
+	}
+	config.RaftNode.Join(params.ID, params.Addr)
 }

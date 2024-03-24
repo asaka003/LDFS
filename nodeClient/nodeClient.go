@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -69,7 +69,7 @@ func (nameNodeClient *NameNodeHttpClient) GetDataNodeListInfo(backendUrl string)
 		err = errors.New("Get DataNode List Info failed with status " + res.Status)
 		return
 	}
-	resBytes, err := ioutil.ReadAll(res.Body)
+	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
 		return
 	}
@@ -126,7 +126,7 @@ func (nameNodeClient *NameNodeHttpClient) GetFileMate(fileKey, backendUrl string
 	if res.StatusCode != http.StatusOK {
 		return nil, errors.New("Get FileMate failed with status " + res.Status)
 	}
-	fileMetaBytes, err := ioutil.ReadAll(res.Body)
+	fileMetaBytes, err := io.ReadAll(res.Body)
 	if err != nil {
 		return
 	}
@@ -175,7 +175,7 @@ func (nameNodeClient *NameNodeHttpClient) RequestUploadFile(fileKey, backend, st
 	}
 
 	// 解析响应体
-	responseBodyBytes, err := ioutil.ReadAll(resp.Body)
+	responseBodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
 	}
@@ -214,7 +214,7 @@ func (nameNodeClient *NameNodeHttpClient) GetAllFileKeys(backend string) (fileLi
 	}
 
 	// 解析响应体
-	responseBodyBytes, err := ioutil.ReadAll(resp.Body)
+	responseBodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
 	}
@@ -269,7 +269,7 @@ func (dataNodeClient *DataNodeHttpClient) GetStorageInfo(backend string) (dataNo
 		err = errors.New("Get Storage Info failed with status " + res.Status)
 		return
 	}
-	resBytes, err := ioutil.ReadAll(res.Body)
+	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
 		return
 	}
