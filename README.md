@@ -15,6 +15,7 @@ LDFS，轻量级的分布式存储系统
 - 文件meta信息采用raft算法在NameNode之间进行交互
 
 ## 开箱即用，无需格式化磁盘，支持入门级服务器部署
+- NameNode 和 DataNode 可以分离部署，任意节点加入
 
 ## 系统架构图
 ![图片描述](img/LDFS架构图.png)
