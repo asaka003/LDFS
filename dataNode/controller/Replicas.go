@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -82,12 +83,30 @@ func ReplicasUploadShard(c *gin.Context) {
 
 //下载数据块
 func ReplicasDownloadShard(c *gin.Context) {
-	shard := &model.Shard{}
-	err := c.ShouldBindJSON(shard)
-	if err != nil || strings.Contains(shard.Hash, "..") {
+	params := new(model.ParamReplicasDownloadShard)
+	err := c.ShouldBindJSON(params)
+	if err != nil || strings.Contains(params.Shard.Hash, "..") {
 		ResponseErr(c, CodeInvalidParam)
 		return
 	}
-	shardPath := filepath.Join(config.ShardsDir, shard.Hash)
-	c.File(shardPath)
+	//检测该shard是否在恢复过程中
+	_, ok := config.RecoveringShardHash.Load(params.FileKey)
+	if ok {
+		ResponseErr(c, CodeNotFoundFile)
+		return
+	}
+	shardPath := filepath.Join(config.ShardsDir, params.Shard.Hash)
+	_, err = os.Stat(shardPath)
+	if err != nil {
+		ResponseErr(c, CodeNotFoundFile)
+		//出现错误，开始恢复文件
+		log.Printf("shard err {%s}, start recover shard", err.Error())
+		err = recoverShard(params.FileKey, params.BlockId, params.Shard.ShardID)
+		if err != nil {
+			logger.Logger.Error("failed to recover shard", zap.Error(err))
+			return
+		}
+	} else {
+		c.File(shardPath)
+	}
 }

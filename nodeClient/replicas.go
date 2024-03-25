@@ -76,13 +76,13 @@ func (dataNodeClient *DataNodeHttpClient) ReplicasUploadShard(shardHash, blockJs
 }
 
 //下载文件数据块
-func (dataNodeClient *DataNodeHttpClient) ReplicasDownloadShard(shardHash, backend string, des io.Writer) (err error) {
-
+func (dataNodeClient *DataNodeHttpClient) ReplicasDownloadShard(fileKey string, blockID int, shardHash, backend string, shard *model.Shard, des io.Writer) (err error) {
 	URL := backend + dataNodeClient.replicasDownloadShardUrl
-
 	// 创建请求体
-	requestBody := model.Shard{
-		Hash: shardHash,
+	requestBody := model.ParamReplicasDownloadShard{
+		FileKey: fileKey,
+		BlockId: blockID,
+		Shard:   shard,
 	}
 	requestBodyBytes, err := json.Marshal(requestBody)
 	if err != nil {

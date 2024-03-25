@@ -1,6 +1,7 @@
 package config
 
 import (
+	"LDFS/model"
 	"LDFS/nodeClient"
 	"math/rand"
 	"os"
@@ -14,6 +15,7 @@ var (
 	NameNodeClient      *nodeClient.NameNodeHttpClient
 	DataNodeClient      *nodeClient.DataNodeHttpClient
 	RecoveringShardHash *sync.Map
+	NameNodeList        []*model.NameNode
 )
 
 //初始化配置

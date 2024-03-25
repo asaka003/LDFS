@@ -159,9 +159,27 @@ func (node *RaftNode) GetDataNodeList() []*model.DataNode {
 	return dataNodeList
 }
 
+//获取NameNode节点信息
+func (node *RaftNode) GetNameNodeList() []*model.NameNode {
+	node.mu.Lock()
+	defer node.mu.Unlock()
+	nameNodeList := make([]*model.NameNode, len(node.NameNodeSet))
+	i := 0
+	for _, v := range node.NameNodeSet {
+		//fmt.Println("遍历节点", v.NodeID, v.HAddr)
+		nameNodeList[i] = v
+		i++
+	}
+	//fmt.Println(dataNodeList)
+	return nameNodeList
+}
+
 //获取leaderNameNode节点的http地址
 func (node *RaftNode) GetLeaderNameNode() *model.NameNode {
 	_, nodeID := node.raft.LeaderWithID()
+
+	//fmt.Println("leader节点为: ", nodeID, string(nodeID), node.NameNodeSet[string(nodeID)])
+
 	node.mu.Lock()
 	defer node.mu.Unlock()
 	return node.NameNodeSet[string(nodeID)]
@@ -229,6 +247,10 @@ func New(raftDir, metadir, raftAddr, joinAddr, localHaddr, nodeID string) (err e
 		DataNodeSet: make(map[string]*model.DataNode),
 		NameNodeSet: make(map[string]*model.NameNode),
 	}
+	// RaftNodeClient.NameNodeSet[nodeID] = &model.NameNode{ //join haddr myself
+	// 	NodeID: nodeID,
+	// 	HAddr:  localHaddr,
+	// }
 	if err := RaftNodeClient.Open(joinAddr == "", nodeID); err != nil {
 		log.Fatalf("failed to open store: %s", err.Error())
 		return err
@@ -238,6 +260,20 @@ func New(raftDir, metadir, raftAddr, joinAddr, localHaddr, nodeID string) (err e
 		if err := join(joinAddr, raftAddr, localHaddr, nodeID); err != nil {
 			log.Fatalf("failed to join node at %s: %s", joinAddr, err.Error())
 			return err
+		}
+	} else { //join leader haddr info myself
+		for {
+			if RaftNodeClient.raft.State() == raft.Leader {
+				err = RaftNodeClient.AddNameNodeHaddr(&model.NameNode{
+					NodeID: nodeID,
+					HAddr:  localHaddr,
+				})
+				if err != nil {
+					log.Fatalf("join haddr myself err: {%s}", err.Error())
+				}
+				break
+			}
+			time.Sleep(time.Second)
 		}
 	}
 
@@ -451,6 +487,7 @@ func (f *fsm) applyAddDataNode(dataNode *model.DataNode) interface{} {
 func (f *fsm) applyAddNameNodeHaddr(nameNode *model.NameNode) interface{} {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	//fmt.Println("加入节点2:", nameNode.NodeID, nameNode.HAddr)
 	f.NameNodeSet[nameNode.NodeID] = nameNode
 	return nil
 }

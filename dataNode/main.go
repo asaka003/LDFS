@@ -6,12 +6,8 @@ import (
 	"LDFS/dataNode/util"
 	"LDFS/logger"
 	"LDFS/model"
-	"bytes"
-	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 )
@@ -36,21 +32,6 @@ func init() {
 	flag.StringVar(&joinNameNodeHaddr, "joinND", "", "Set join nameNode http address")
 	flag.StringVar(&nodeID, "id", "", "Node ID.")
 	flag.StringVar(&shardsDir, "shardsDir", "", "Set ths shards storage directory")
-}
-
-func join(joinNameNodeAddr string, dataNode *model.DataNode) error {
-	b, err := json.Marshal(model.ParamJoinDataNode{
-		DataNodeInfo: dataNode,
-	})
-	if err != nil {
-		return err
-	}
-	resp, err := http.Post(fmt.Sprintf("http://%s/LDFS/joinDataNode", joinNameNodeAddr), "application-type/json", bytes.NewReader(b))
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	return nil
 }
 
 func main() {
@@ -83,8 +64,15 @@ func main() {
 		NodeDiskUsedSize:      used,
 		NodeDiskAvailableSize: free,
 	}
-	if err := join(joinNameNodeHaddr, dataNode); err != nil {
+
+	if err := config.NameNodeClient.JoinDataNode(joinNameNodeHaddr, dataNode); err != nil {
 		log.Fatalf("failed to join NameNode: %s", err.Error())
+	}
+
+	//获取当前所有NameNode列表信息
+	config.NameNodeList, err = config.NameNodeClient.GetNameNodeListInfo("http://" + joinNameNodeHaddr)
+	if err != nil {
+		log.Fatalf("failed to get NameNode List: %s", err.Error())
 	}
 
 	//初始化路由信息

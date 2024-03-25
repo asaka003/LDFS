@@ -63,18 +63,20 @@ func (cli *ReplicasClient) DownloadFile(fileKey string, destPath string) (err er
 	for _, block := range blocks {
 		ok := false
 		for _, shard := range block.Shards {
-			err = DataNodeClient.ReplicasDownloadShard(block.Hash, shard.NodeURL, file)
+			shard.Hash = block.Hash
+			err = DataNodeClient.ReplicasDownloadShard(fileKey, block.BlockId, block.Hash, shard.NodeURL, shard, file)
 			if err != nil {
-				wg.Add(1)
-				go func() {
-					DataNodeClient.RecoverShard(&model.RecoverShardParam{ //请求DataNode修复文件
-						Block:         block,
-						ShardId:       shard.ShardID,
-						StoragePolicy: nodeClient.StoragePolicyCopy,
-					}, shard.NodeURL)
-					wg.Done()
-				}()
-				continue
+				log.Printf("file broken:%s", err.Error())
+				// wg.Add(1)
+				// go func() {
+				// 	DataNodeClient.RecoverShard(&model.RecoverShardParam{ //请求DataNode修复文件
+				// 		Block:         block,
+				// 		ShardId:       shard.ShardID,
+				// 		StoragePolicy: nodeClient.StoragePolicyCopy,
+				// 	}, shard.NodeURL)
+				// 	wg.Done()
+				// }()
+				// continue
 			} else {
 				ok = true
 				break
@@ -218,20 +220,24 @@ func (cli *ECClient) DownloadFile(fileKey string, destPath string) (err error) {
 		for shardId := 0; shardId < length; shardId++ {
 			err = DataNodeClient.ECDownloadShard(fileMeta.Blocks[blockId].Shards[shardId].Hash, fileMeta.Blocks[blockId].Shards[shardId].NodeURL, buffers[shardId])
 			if err != nil {
-				buffers[shardId] = nil
-				wg.Add(1)
-				go func() {
-					DataNodeClient.RecoverShard(&model.RecoverShardParam{ //请求DataNode修复文件
-						Block:          fileMeta.Blocks[blockId],
-						ShardId:        int64(shardId),
-						DataShardNum:   fileMeta.DataShards,
-						ParityShardNum: fileMeta.ParityShards,
-						StoragePolicy:  nodeClient.StoragePolicyEC,
-					}, fileMeta.Blocks[blockId].Shards[shardId].NodeURL)
-					wg.Done()
-				}()
+				log.Printf("file broken:%s", err.Error())
 				return err
 			}
+			// if err != nil {
+			// 	buffers[shardId] = nil
+			// 	wg.Add(1)
+			// 	go func() {
+			// 		DataNodeClient.RecoverShard(&model.RecoverShardParam{ //请求DataNode修复文件
+			// 			Block:          fileMeta.Blocks[blockId],
+			// 			ShardId:        int64(shardId),
+			// 			DataShardNum:   fileMeta.DataShards,
+			// 			ParityShardNum: fileMeta.ParityShards,
+			// 			StoragePolicy:  nodeClient.StoragePolicyEC,
+			// 		}, fileMeta.Blocks[blockId].Shards[shardId].NodeURL)
+			// 		wg.Done()
+			// 	}()
+			// 	return err
+			// }
 		}
 	}
 

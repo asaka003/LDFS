@@ -37,3 +37,9 @@ type ParamJoin struct {
 type ParamJoinDataNode struct {
 	DataNodeInfo *DataNode `json:"data_node"`
 }
+
+type ParamReplicasDownloadShard struct {
+	FileKey string `json:"file_key"`
+	BlockId int    `json:"block_id"`
+	Shard   *Shard `json:"shard"`
+}

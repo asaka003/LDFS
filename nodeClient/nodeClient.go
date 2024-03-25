@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -29,6 +30,9 @@ type NameNodeHttpClient struct {
 	getDataNodeListInfoUrl   string
 	updateFileMetaUrl        string
 	getNameNodeLeaderInfoUrl string
+	getNameNodeListInfoUrl   string
+	joinNameNodeUrl          string
+	joinDataNodeUrl          string
 }
 
 type DataNodeHttpClient struct {
@@ -49,6 +53,9 @@ func GetNameNodeHttpClient() *NameNodeHttpClient {
 		getDataNodeListInfoUrl:   "/LDFS/getDataNodeListInfo",
 		updateFileMetaUrl:        "/LDFS/updateFileMeta",
 		getNameNodeLeaderInfoUrl: "/LDFS/getNameNodeLeaderInfo",
+		getNameNodeListInfoUrl:   "/LDFS/getNameNodeListInfo",
+		joinNameNodeUrl:          "/LDFS/join",
+		joinDataNodeUrl:          "/LDFS/joinDataNode",
 	}
 }
 
@@ -86,6 +93,45 @@ func (nameNodeClient *NameNodeHttpClient) GetDataNodeListInfo(backendUrl string)
 		return
 	}
 	return
+}
+
+//获取所有NameNode地址列表
+func (nameNodeClient *NameNodeHttpClient) GetNameNodeListInfo(backend string) (nameNodeList []*model.NameNode, err error) {
+	res, err := http.Get(backend + nameNodeClient.getNameNodeListInfoUrl)
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		err = errors.New("Get DataNode List Info failed with status " + res.Status)
+		return
+	}
+	resBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return
+	}
+	nameNodeList = make([]*model.NameNode, 0)
+	err = json.Unmarshal(resBytes, &nameNodeList)
+	if err != nil {
+		return
+	}
+	return
+}
+
+//加入DataNode节点
+func (nameNodeClient *NameNodeHttpClient) JoinDataNode(leaderNameNodeAddr string, dataNode *model.DataNode) error {
+	b, err := json.Marshal(model.ParamJoinDataNode{
+		DataNodeInfo: dataNode,
+	})
+	if err != nil {
+		return err
+	}
+	resp, err := http.Post(fmt.Sprintf("http://%s%s", leaderNameNodeAddr, nameNodeClient.joinDataNodeUrl), "application-type/json", bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
 }
 
 //发送简单上传分块信息
@@ -292,35 +338,35 @@ func (nameNodeClient *NameNodeHttpClient) GetNameNodeLeaderInfo(backend string) 
 }
 
 //恢复文件数据
-func (dataNodeClient *DataNodeHttpClient) RecoverShard(opt *model.RecoverShardParam, backend string) (err error) {
-	URL := backend + dataNodeClient.recoverShardUrl
+// func (dataNodeClient *DataNodeHttpClient) RecoverShard(opt *model.RecoverShardParam, backend string) (err error) {
+// 	URL := backend + dataNodeClient.recoverShardUrl
 
-	requestBodyBytes, err := json.Marshal(opt)
-	if err != nil {
-		return
-	}
-	// 创建 HTTP 请求
-	req, err := http.NewRequest("POST", URL, bytes.NewBuffer(requestBodyBytes))
-	if err != nil {
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
+// 	requestBodyBytes, err := json.Marshal(opt)
+// 	if err != nil {
+// 		return
+// 	}
+// 	// 创建 HTTP 请求
+// 	req, err := http.NewRequest("POST", URL, bytes.NewBuffer(requestBodyBytes))
+// 	if err != nil {
+// 		return
+// 	}
+// 	req.Header.Set("Content-Type", "application/json")
 
-	// 发送 HTTP 请求
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
+// 	// 发送 HTTP 请求
+// 	client := &http.Client{}
+// 	resp, err := client.Do(req)
+// 	if err != nil {
+// 		return
+// 	}
+// 	defer resp.Body.Close()
 
-	// 检查响应状态码
-	if resp.StatusCode != http.StatusOK {
-		return errors.New("Recover Shard failed with status " + resp.Status)
-	}
+// 	// 检查响应状态码
+// 	if resp.StatusCode != http.StatusOK {
+// 		return errors.New("Recover Shard failed with status " + resp.Status)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 //获取DataNode存储信息
 func (dataNodeClient *DataNodeHttpClient) GetStorageInfo(backend string) (dataNodeInfo model.DataNode, err error) {

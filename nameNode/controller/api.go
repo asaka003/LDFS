@@ -97,6 +97,7 @@ func RequestUploadFile(c *gin.Context) {
 		}
 	}
 	if len(availableDataNodeList) == 0 { //所有的dataNode都存储满，返回错误信息
+		logger.Logger.Error("Disk is full")
 		ResponseErr(c, CodeDiskIsFull)
 		return
 	}
@@ -133,8 +134,9 @@ func RequestUploadFile(c *gin.Context) {
 			}
 		}
 		shards := make([]*model.Shard, 0)
-		for _, dataNode := range selectDataNodeList {
+		for i, dataNode := range selectDataNodeList {
 			shards = append(shards, &model.Shard{
+				ShardID: int64(i),
 				NodeURL: dataNode.URL,
 			})
 		}
@@ -154,6 +156,7 @@ func RequestUploadFile(c *gin.Context) {
 	//保存meta信息到文件中
 	err = util.SaveFileMetaInFile(fileMeta)
 	if err != nil {
+		logger.Logger.Error("failed to save meta", zap.Error(err))
 		ResponseErr(c, CodeServerBusy)
 		return
 	}

@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func Test_uploada12(t *testing.T) {
+func Test_uploada12312311111111111111(t *testing.T) {
 	client := storagesdk.NewReplicasClient(
 		[]string{
 			"http://localhost:11001",
@@ -22,7 +22,7 @@ func Test_uploada12(t *testing.T) {
 	}
 }
 
-func Test_downloadb123123(t *testing.T) {
+func Test_downloadttt12aa11111111(t *testing.T) {
 	client := storagesdk.NewReplicasClient(
 		[]string{
 			"http://localhost:11001",
