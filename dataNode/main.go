@@ -4,6 +4,7 @@ import (
 	"LDFS/dataNode/config"
 	"LDFS/dataNode/route"
 	"LDFS/dataNode/util"
+	"LDFS/logger"
 	"LDFS/model"
 	"bytes"
 	"encoding/json"
@@ -29,6 +30,8 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	//初始化logger
+	logger.InitLog()
 	flag.StringVar(&httpAddr, "haddr", DefaultHTTPAddr, "Set the HTTP bind address")
 	flag.StringVar(&joinNameNodeHaddr, "joinND", "", "Set join nameNode http address")
 	flag.StringVar(&nodeID, "id", "", "Node ID.")

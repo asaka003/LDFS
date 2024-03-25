@@ -26,6 +26,7 @@ type NameNodeHttpClient struct {
 	requestUploadFileUrl    string
 	completeSampleUploadUrl string
 	getDataNodeListInfoUrl  string
+	updateFileMetaUrl       string
 }
 
 type DataNodeHttpClient struct {
@@ -44,6 +45,7 @@ func GetNameNodeHttpClient() *NameNodeHttpClient {
 		requestUploadFileUrl:    "/LDFS/requestUploadFile",
 		completeSampleUploadUrl: "/LDFS/completeSampleUpload",
 		getDataNodeListInfoUrl:  "/LDFS/getDataNodeListInfo",
+		updateFileMetaUrl:       "/LDFS/updateFileMeta",
 	}
 }
 
@@ -117,7 +119,7 @@ func (nameNodeClient *NameNodeHttpClient) CompleteSampleUpload(fileKey, backendU
 //获取文件完整FileMate信息
 func (nameNodeClient *NameNodeHttpClient) GetFileMate(fileKey, backendUrl string) (meta *model.FileMetadata, err error) {
 	//访问NameNode获取文件Meta信息
-	res, err := http.Get(backendUrl + nameNodeClient.getFileMetaByFileKeyUrl)
+	res, err := http.Get(backendUrl + nameNodeClient.getFileMetaByFileKeyUrl + "/" + fileKey)
 	if err != nil {
 		return
 	}
@@ -194,7 +196,7 @@ func (nameNodeClient *NameNodeHttpClient) GetAllFileKeys(backend string) (fileLi
 	URL := backend + nameNodeClient.getAllFileKeysUrl
 
 	// 创建 HTTP 请求
-	req, err := http.NewRequest("POST", URL, nil)
+	req, err := http.NewRequest("GET", URL, nil)
 	if err != nil {
 		return
 	}
@@ -225,6 +227,32 @@ func (nameNodeClient *NameNodeHttpClient) GetAllFileKeys(backend string) (fileLi
 	}
 
 	return result, nil
+}
+
+//更新文件meta信息
+func (nameNodeClient *NameNodeHttpClient) UpdateFileMeta(backend string, fileMeta *model.FileMetadata) (err error) {
+	URL := backend + nameNodeClient.updateFileMetaUrl
+	requestBodyBytes, err := json.Marshal(fileMeta)
+	if err != nil {
+		return
+	}
+	req, err := http.NewRequest("POST", URL, bytes.NewBuffer(requestBodyBytes))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	// 发送 HTTP 请求
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	// 检查响应状态码
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("Request UploadFile failed with status " + resp.Status)
+	}
+	return nil
 }
 
 //恢复文件数据

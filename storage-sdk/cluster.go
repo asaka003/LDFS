@@ -9,14 +9,22 @@ type NameNodeCluster struct {
 }
 
 var (
-	nameNodeCluster *NameNodeCluster
+	nameNodeLeaderCluster   *NameNodeCluster //leader集群
+	nameNodeFollowerCluster *NameNodeCluster //follower集群
 )
 
-func InitCluster(nodes []string) {
-	nameNodeCluster = &NameNodeCluster{
+func InitCluster(nameNodeLeaderUrls, nameNodeFollowerUrls []string) {
+	nameNodeLeaderCluster = &NameNodeCluster{
 		Consistent: consistent.New(),
 	}
-	for _, node := range nodes {
-		nameNodeCluster.Consistent.Add(node)
+	for _, node := range nameNodeLeaderUrls {
+		nameNodeLeaderCluster.Consistent.Add(node)
+	}
+
+	nameNodeFollowerCluster = &NameNodeCluster{
+		Consistent: consistent.New(),
+	}
+	for _, node := range nameNodeFollowerUrls {
+		nameNodeFollowerCluster.Consistent.Add(node)
 	}
 }

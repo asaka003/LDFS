@@ -46,6 +46,9 @@ func bytesMD5(data []byte) string {
 
 //读取文件中的fileMeta信息
 func GetFileMetaInFile(key string) (meta *model.FileMetadata, err error) {
+	if key[0] == '/' {
+		key = key[1:]
+	}
 	key_path := util.BytesHash([]byte(key)) + ".json"
 	rmeta, err := raft.RaftNodeClient.GetFileMeta(key_path)
 	meta = (*model.FileMetadata)(rmeta)
@@ -55,8 +58,12 @@ func GetFileMetaInFile(key string) (meta *model.FileMetadata, err error) {
 //存储文件meta信息到文件中
 func SaveFileMetaInFile(fileMeta *model.FileMetadata) (err error) {
 	//保存meta信息到文件中
-	raft.RaftNodeClient.CreateFileMeta(util.BytesHash([]byte(fileMeta.FileKey))+".json", (*raft.FileMeta)(fileMeta))
-	return
+	return raft.RaftNodeClient.CreateFileMeta(util.BytesHash([]byte(fileMeta.FileKey))+".json", (*raft.FileMeta)(fileMeta))
+}
+
+//更新文件meta信息到文件中
+func UpdateFileMeta(fileMeta *model.FileMetadata) (err error) {
+	return raft.RaftNodeClient.UpdateFileMeta(util.BytesHash([]byte(fileMeta.FileKey))+".json", (*raft.FileMeta)(fileMeta))
 }
 
 //删除文件meta信息

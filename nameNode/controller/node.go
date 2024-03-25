@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"LDFS/model"
 	"LDFS/nameNode/raft"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,28 @@ import (
 //查询所有DataNode的信息
 func GetDataNodeListInfo(c *gin.Context) {
 	ResponseSuc(c, raft.RaftNodeClient.GetDataNodeList())
+}
+
+//加入NameNode节点
+func JoinNameNodeHandler(c *gin.Context) {
+	params := new(model.ParamJoin)
+	if err := c.ShouldBindJSON(params); err != nil {
+		ResponseErr(c, CodeInvalidParam)
+		return
+	}
+	raft.RaftNodeClient.Join(params.ID, params.RaftAddr)
+	ResponseSuc(c, nil)
+}
+
+//加入DataNode节点
+func JoinDataNodeHandler(c *gin.Context) {
+	params := new(model.ParamJoinDataNode)
+	if err := c.ShouldBindJSON(params); err != nil {
+		ResponseErr(c, CodeInvalidParam)
+		return
+	}
+	raft.RaftNodeClient.AddDataNode(params.DataNodeInfo)
+	ResponseSuc(c, nil)
 }
 
 //动态加入DataNode请求(没有密码认证，不安全)

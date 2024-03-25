@@ -1,6 +1,7 @@
 package raft
 
 import (
+	"LDFS/logger"
 	"LDFS/model"
 	"bytes"
 	"encoding/json"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
+	"go.uber.org/zap"
 )
 
 const (
@@ -63,7 +65,7 @@ func (node *RaftNode) GetFileMeta(key string) (meta *FileMeta, err error) {
 	path := filepath.Join(node.MetaDir, key)
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, errors.New("error ReadingFile")
+		return nil, fmt.Errorf("error ReadingFile: %s %s", path, err.Error())
 	}
 	meta = new(FileMeta)
 	err = json.Unmarshal(data, meta)
@@ -148,7 +150,7 @@ func (node *RaftNode) GetDataNodeList() []*model.DataNode {
 		dataNodeList[i] = v
 		i++
 	}
-	fmt.Println(dataNodeList)
+	//fmt.Println(dataNodeList)
 	return dataNodeList
 }
 
@@ -371,15 +373,16 @@ func (f *fsm) applyUpdateMeta(key string, meta *FileMeta) interface{} {
 	f.mu.Unlock()
 	fm.Lock()
 	defer fm.Unlock()
-
 	path := filepath.Join(f.MetaDir, key)
 	_, err := os.Stat(path)
 	if err != nil {
-		return fmt.Errorf("文件key不存在")
+		logger.Logger.Error("文件key不存在", zap.Error(err))
+		return errors.New("文件key不存在")
 	}
 	data, err := json.Marshal(meta)
 	if err != nil {
-		return fmt.Errorf("序列化meta信息失败")
+		logger.Logger.Error("序列化meta信息失败", zap.Error(err))
+		return errors.New("序列化meta信息失败")
 	}
 	os.WriteFile(path, data, 0644)
 	return nil

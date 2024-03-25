@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"LDFS/dataNode/logger"
+	"LDFS/logger"
 	"LDFS/model"
 	"LDFS/nameNode/config"
 	"LDFS/nameNode/raft"
@@ -61,8 +61,9 @@ func GetFileMetaByFileKey(c *gin.Context) {
 	}
 	fileMeta, err := util.GetFileMetaInFile(fileKey)
 	if err != nil {
+		//fmt.Println(fileKey)
 		logger.Logger.Error("读取fileMeta文件信息失败", zap.Error(err))
-		ResponseErr(c, CodeServerBusy)
+		ResponseErr(c, CodeNotFoundFile)
 		return
 	}
 	ResponseSuc(c, fileMeta)
@@ -202,24 +203,20 @@ func DeleteFile(c *gin.Context) {
 //修改文件名
 func UpdateFileName(c *gin.Context) {}
 
-//加入NameNode节点
-func JoinNameNodeHandler(c *gin.Context) {
-	params := new(model.ParamJoin)
-	if err := c.ShouldBindJSON(params); err != nil {
+//更新文件meta信息
+func UpdateFileMeta(c *gin.Context) {
+	fileMeta := new(model.FileMetadata)
+	err := c.ShouldBindJSON(fileMeta)
+	if err != nil {
 		ResponseErr(c, CodeInvalidParam)
 		return
 	}
-	raft.RaftNodeClient.Join(params.ID, params.RaftAddr)
-	ResponseSuc(c, nil)
-}
-
-//加入DataNode节点
-func JoinDataNodeHandler(c *gin.Context) {
-	params := new(model.ParamJoinDataNode)
-	if err := c.ShouldBindJSON(params); err != nil {
-		ResponseErr(c, CodeInvalidParam)
+	//fmt.Println(fileMeta.Blocks[0].Hash)
+	err = util.UpdateFileMeta(fileMeta)
+	if err != nil {
+		logger.Logger.Error("更新文件meta信息失败", zap.Error(err))
+		ResponseErr(c, CodeServerBusy)
 		return
 	}
-	raft.RaftNodeClient.AddDataNode(params.DataNodeInfo)
 	ResponseSuc(c, nil)
 }

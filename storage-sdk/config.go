@@ -5,10 +5,11 @@ import (
 )
 
 var (
-	DataNodeUrls   []string
-	NameNodeUrls   []string
-	NameNodeClient *nodeClient.NameNodeHttpClient
-	DataNodeClient *nodeClient.DataNodeHttpClient
+	DataNodeUrls         []string
+	NameNodeLeaderUrls   []string
+	NameNodeFollowerUrls []string
+	NameNodeClient       *nodeClient.NameNodeHttpClient
+	DataNodeClient       *nodeClient.DataNodeHttpClient
 )
 
 const EC_OutDir = "/tmp/ec_out/"

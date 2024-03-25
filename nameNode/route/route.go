@@ -26,17 +26,18 @@ func SetRoute() *gin.Engine {
 
 	api := r.Group("/LDFS/")
 	{
-		api.POST("/getAllFileKeys", controller.GetAllFileKeys)
-		api.POST("/getFileMetaByFileKey/:fileKey", controller.GetFileMetaByFileKey)
+		api.GET("/getAllFileKeys", controller.GetAllFileKeys)
+		api.GET("/getFileMetaByFileKey/*fileKey", controller.GetFileMetaByFileKey)
+		api.POST("/updateFileMeta", controller.UpdateFileMeta)
 
 		api.POST("/requestUploadFile", controller.RequestUploadFile)
 		api.POST("/completeSampleUpload", controller.CompleteSampleUpload)
 
-		api.POST("/getDataNodeListInfo", controller.GetDataNodeListInfo)
-		// api.POST("/addDataNode", controller.AddDataNode)
+		api.GET("/getDataNodeListInfo", controller.GetDataNodeListInfo)
 
 		api.POST("/join", controller.JoinNameNodeHandler)
 		api.POST("/joinDataNode", controller.JoinDataNodeHandler)
+
 	}
 
 	return r

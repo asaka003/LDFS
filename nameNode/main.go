@@ -1,6 +1,7 @@
 package main
 
 import (
+	"LDFS/logger"
 	"LDFS/nameNode/config"
 	"LDFS/nameNode/raft"
 	"LDFS/nameNode/route"
@@ -26,6 +27,8 @@ func init() {
 	if err := config.ConfigInit(); err != nil { //初始化配置信息
 		panic(err)
 	}
+	//初始化logger
+	logger.InitLog()
 	//flag.BoolVar(&inmem, "inmem", false, "Use in-memory storage for Raft")
 	flag.StringVar(&httpAddr, "haddr", DefaultHTTPAddr, "Set the HTTP bind address")
 	flag.StringVar(&raftAddr, "raddr", DefaultRaftAddr, "Set Raft bind address")

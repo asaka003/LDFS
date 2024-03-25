@@ -2,7 +2,7 @@ package controller
 
 import (
 	"LDFS/dataNode/config"
-	"LDFS/dataNode/logger"
+	"LDFS/logger"
 	"LDFS/model"
 	"LDFS/nodeClient"
 	storagesdk "LDFS/storage-sdk"

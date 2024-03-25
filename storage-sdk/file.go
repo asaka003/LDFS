@@ -30,9 +30,10 @@ type ReplicasClient struct {
 }
 
 //初始化副本冗余模式Client
-func NewReplicasClient(nameNodeUrls []string) (client StorageClient) {
-	NameNodeUrls = nameNodeUrls
-	InitCluster(nameNodeUrls)
+func NewReplicasClient(nameNodeLeaderUrls, nameNodeFollowerUrls []string) (client StorageClient) {
+	NameNodeLeaderUrls = nameNodeLeaderUrls
+	NameNodeFollowerUrls = nameNodeFollowerUrls
+	InitCluster(NameNodeLeaderUrls, nameNodeFollowerUrls)
 	NameNodeClient = nodeClient.GetNameNodeHttpClient()
 	DataNodeClient = nodeClient.GetDataNodeHttpClient()
 	return &ReplicasClient{}
@@ -41,7 +42,7 @@ func NewReplicasClient(nameNodeUrls []string) (client StorageClient) {
 //下载文件
 func (cli *ReplicasClient) DownloadFile(fileKey string, destPath string) (err error) {
 	//一致性hash负载均衡获取要请求的NameNode地址
-	backend, err := nameNodeCluster.Consistent.Get(fileKey)
+	backend, err := nameNodeFollowerCluster.Consistent.Get(fileKey)
 	if err != nil {
 		return
 	}
@@ -89,7 +90,7 @@ func (cli *ReplicasClient) DownloadFile(fileKey string, destPath string) (err er
 //简单上传文件
 func (cli *ReplicasClient) SimpleUploadFile(fileKey string, srcPath string) (err error) {
 	//一致性hash负载均衡获取要请求的NameNode地址
-	backend, err := nameNodeCluster.Consistent.Get(fileKey)
+	backend, err := nameNodeLeaderCluster.Consistent.Get(fileKey)
 	if err != nil {
 		return
 	}
@@ -127,6 +128,11 @@ func (cli *ReplicasClient) SimpleUploadFile(fileKey string, srcPath string) (err
 		if err != nil {
 			return err
 		}
+		//更新文件meta信息
+		err = NameNodeClient.UpdateFileMeta(backend, fileMeta)
+		if err != nil {
+			return err
+		}
 	}
 	return
 }
@@ -135,12 +141,11 @@ func (cli *ReplicasClient) SimpleUploadFile(fileKey string, srcPath string) (err
 type ECClient struct {
 }
 
-//初始化SDK列表,加载DataNode地址列表,目前只支持http协议
-func NewECClient(nameNodeUrls []string) (client StorageClient) {
-	//DataNodeUrls = dataNodeUrls
-	NameNodeUrls = nameNodeUrls
-	//InitReverseProxy(DataNodeUrls)
-	InitCluster(nameNodeUrls)
+//初始化SDK列表,目前只支持http协议
+func NewECClient(nameNodeLeaderUrls, nameNodeFollowerUrls []string) (client StorageClient) {
+	NameNodeLeaderUrls = nameNodeLeaderUrls
+	NameNodeFollowerUrls = nameNodeFollowerUrls
+	InitCluster(NameNodeLeaderUrls, nameNodeFollowerUrls)
 	NameNodeClient = nodeClient.GetNameNodeHttpClient()
 	DataNodeClient = nodeClient.GetDataNodeHttpClient()
 	return &ECClient{}
@@ -149,7 +154,7 @@ func NewECClient(nameNodeUrls []string) (client StorageClient) {
 //下载文件
 func (cli *ECClient) DownloadFile(fileKey string, destPath string) (err error) {
 	//一致性hash负载均衡获取要请求的NameNode地址
-	backend, err := nameNodeCluster.Consistent.Get(fileKey)
+	backend, err := nameNodeFollowerCluster.Consistent.Get(fileKey)
 	if err != nil {
 		return
 	}
@@ -196,7 +201,7 @@ func (cli *ECClient) DownloadFile(fileKey string, destPath string) (err error) {
 //简单上传文件
 func (cli *ECClient) SimpleUploadFile(fileKey string, srcPath string) (err error) {
 	//一致性hash负载均衡获取要请求的NameNode地址
-	backend, err := nameNodeCluster.Consistent.Get(fileKey)
+	backend, err := nameNodeLeaderCluster.Consistent.Get(fileKey)
 	if err != nil {
 		return
 	}

@@ -2,8 +2,8 @@ package controller
 
 import (
 	"LDFS/dataNode/config"
-	"LDFS/dataNode/logger"
 	"LDFS/dataNode/util"
+	"LDFS/logger"
 	"LDFS/model"
 	"bytes"
 	"encoding/json"
