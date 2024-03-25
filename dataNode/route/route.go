@@ -19,9 +19,6 @@ func SetRoute() *gin.Engine {
 
 		api.POST("/recoverShard", controller.RecoverShard)
 		api.GET("/getStorageInfo", controller.GetStorageInfo)
-
-		api.GET("/getNameNodeLeaderInfo", controller.GetNameNodeLeaderInfo)
-
 	}
 
 	return r

@@ -1,10 +1,13 @@
 package controller
 
 import (
+	"LDFS/logger"
 	"LDFS/model"
 	"LDFS/nameNode/raft"
+	"LDFS/nameNode/util"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 /* 本模块负责节点之间的通信地址查询 */
@@ -21,7 +24,21 @@ func JoinNameNodeHandler(c *gin.Context) {
 		ResponseErr(c, CodeInvalidParam)
 		return
 	}
-	raft.RaftNodeClient.Join(params.ID, params.RaftAddr)
+	err := raft.RaftNodeClient.Join(params.ID, params.RaftAddr, params.HttpAddr)
+	if err != nil {
+		logger.Logger.Error("加入NameNode节点失败", zap.Error(err))
+		ResponseErr(c, CodeServerBusy)
+		return
+	}
+	err = raft.RaftNodeClient.AddNameNodeHaddr(&model.NameNode{ //添加http服务地址信息
+		NodeID: params.ID,
+		HAddr:  params.HttpAddr,
+	})
+	if err != nil {
+		logger.Logger.Error("加入NameNode节点失败", zap.Error(err))
+		ResponseErr(c, CodeServerBusy)
+		return
+	}
 	ResponseSuc(c, nil)
 }
 
@@ -34,6 +51,17 @@ func JoinDataNodeHandler(c *gin.Context) {
 	}
 	raft.RaftNodeClient.AddDataNode(params.DataNodeInfo)
 	ResponseSuc(c, nil)
+}
+
+//获取NameNode  leader节点http服务地址信息
+func GetNameNodeLeaderInfo(c *gin.Context) {
+	leader, err := util.GetNameNodeLeaderInfo()
+	if err != nil {
+		logger.Logger.Error("获取leader节点失败", zap.Error(err))
+		ResponseErr(c, CodeServerBusy)
+		return
+	}
+	ResponseSuc(c, leader)
 }
 
 //动态加入DataNode请求(没有密码认证，不安全)

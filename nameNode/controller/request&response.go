@@ -29,10 +29,6 @@ var (
 		http.StatusInternalServerError,
 		"服务繁忙",
 	}
-	CodeInvalidToken ResCode = ResCode{
-		http.StatusForbidden,
-		"无效的token",
-	}
 	CodeNotFoundFile ResCode = ResCode{
 		http.StatusBadRequest,
 		"文件不存在",
@@ -40,14 +36,6 @@ var (
 	CodeFileExist ResCode = ResCode{
 		http.StatusBadRequest,
 		"文件已存在",
-	}
-	CodeUserInputErr ResCode = ResCode{
-		http.StatusForbidden,
-		"用户名或密码错误",
-	}
-	CodeUserExist ResCode = ResCode{
-		http.StatusBadRequest,
-		"用户名或邮箱已经存在",
 	}
 	CodeNodeNotFound ResCode = ResCode{
 		http.StatusNotFound,
@@ -60,6 +48,10 @@ var (
 	CodeDiskIsFull ResCode = ResCode{
 		http.StatusInternalServerError,
 		"文件存储容量已满,请扩容",
+	}
+	CodeNotLeader ResCode = ResCode{
+		http.StatusForbidden,
+		"非leader节点",
 	}
 )
 

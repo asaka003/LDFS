@@ -72,7 +72,7 @@ func main() {
 		log.Fatalf("failed to create path for Meta storage: %s", err.Error())
 	}
 
-	err := raft.New(raftDir, metaDir, raftAddr, joinAddr, nodeID)
+	err := raft.New(raftDir, metaDir, raftAddr, joinAddr, httpAddr, nodeID)
 	if err != nil {
 		panic(err)
 	}

@@ -34,10 +34,10 @@ func SetRoute() *gin.Engine {
 		api.POST("/completeSampleUpload", controller.CompleteSampleUpload)
 
 		api.GET("/getDataNodeListInfo", controller.GetDataNodeListInfo)
+		api.GET("/getNameNodeLeaderInfo", controller.GetNameNodeLeaderInfo)
 
 		api.POST("/join", controller.JoinNameNodeHandler)
 		api.POST("/joinDataNode", controller.JoinDataNodeHandler)
-
 	}
 
 	return r

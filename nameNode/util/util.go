@@ -6,6 +6,7 @@ import (
 	"LDFS/nameNode/raft"
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/rand"
 	"regexp"
@@ -70,5 +71,14 @@ func UpdateFileMeta(fileMeta *model.FileMetadata) (err error) {
 func DeleteFileMeta(key string) (err error) {
 	key_path := util.BytesHash([]byte(key)) + ".json"
 	err = raft.RaftNodeClient.DeleteFileMeta(key_path)
+	return
+}
+
+//获取leader节点的URL
+func GetNameNodeLeaderInfo() (leader *model.NameNode, err error) {
+	leader = raft.RaftNodeClient.GetLeaderNameNode()
+	if leader.HAddr == "" {
+		err = errors.New("正在选举leader,请稍后重试")
+	}
 	return
 }

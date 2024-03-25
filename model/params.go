@@ -30,6 +30,7 @@ const (
 
 type ParamJoin struct {
 	RaftAddr string `json:"addr"`
+	HttpAddr string `json:"haddr"`
 	ID       string `json:"id"`
 }
 

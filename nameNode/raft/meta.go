@@ -22,6 +22,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const ErrNotLeader = "err not leader"
+
 const (
 	retainSnapshotCount = 2
 	raftTimeout         = 10 * time.Second
@@ -31,6 +33,8 @@ const (
 	CommandUpdateFileMeta = "update-meta"
 
 	CommandAddDataNode = "add-dataNode"
+
+	CommandAddNameNodeHaddr = "add-name-node-haddr"
 )
 
 type FileMeta model.FileMetadata
@@ -44,6 +48,7 @@ type RaftNode struct {
 	raft        *raft.Raft //raft算法核心组件
 	logger      *log.Logger
 	DataNodeSet map[string]*model.DataNode //管理的dataNode列表
+	NameNodeSet map[string]*model.NameNode
 	//DataNodeList []*model.DataNode
 }
 
@@ -75,7 +80,7 @@ func (node *RaftNode) GetFileMeta(key string) (meta *FileMeta, err error) {
 //添加文件meta信息
 func (node *RaftNode) CreateFileMeta(key string, meta *FileMeta) (err error) {
 	if node.raft.State() != raft.Leader {
-		return fmt.Errorf("not leader")
+		return fmt.Errorf(ErrNotLeader)
 	}
 	if strings.Contains(key, "..") {
 		return errors.New("invalid param")
@@ -98,7 +103,7 @@ func (node *RaftNode) CreateFileMeta(key string, meta *FileMeta) (err error) {
 //更新文件meta信息
 func (node *RaftNode) UpdateFileMeta(key string, meta *FileMeta) (err error) {
 	if node.raft.State() != raft.Leader {
-		return fmt.Errorf("not leader")
+		return fmt.Errorf(ErrNotLeader)
 	}
 	if strings.Contains(key, "..") {
 		return errors.New("invalid param")
@@ -121,7 +126,7 @@ func (node *RaftNode) UpdateFileMeta(key string, meta *FileMeta) (err error) {
 //删除文件meta信息
 func (node *RaftNode) DeleteFileMeta(key string) (err error) {
 	if node.raft.State() != raft.Leader {
-		return fmt.Errorf("not leader")
+		return fmt.Errorf(ErrNotLeader)
 	}
 	if strings.Contains(key, "..") {
 		return errors.New("invalid param")
@@ -154,10 +159,18 @@ func (node *RaftNode) GetDataNodeList() []*model.DataNode {
 	return dataNodeList
 }
 
+//获取leaderNameNode节点的http地址
+func (node *RaftNode) GetLeaderNameNode() *model.NameNode {
+	_, nodeID := node.raft.LeaderWithID()
+	node.mu.Lock()
+	defer node.mu.Unlock()
+	return node.NameNodeSet[string(nodeID)]
+}
+
 //添加DataNode节点，如果节点存在则，更新对应的节点数据
 func (node *RaftNode) AddDataNode(dataNode *model.DataNode) (err error) {
 	if node.raft.State() != raft.Leader {
-		return fmt.Errorf("not leader")
+		return fmt.Errorf(ErrNotLeader)
 	}
 	c := &command{
 		Op:       CommandAddDataNode,
@@ -171,10 +184,28 @@ func (node *RaftNode) AddDataNode(dataNode *model.DataNode) (err error) {
 	return f.Error()
 }
 
+//添加NameNode节点的http服务地址
+func (node *RaftNode) AddNameNodeHaddr(nameNode *model.NameNode) (err error) {
+	if node.raft.State() != raft.Leader {
+		return fmt.Errorf(ErrNotLeader)
+	}
+	c := &command{
+		Op:       CommandAddNameNodeHaddr,
+		NameNode: nameNode,
+	}
+	b, err := json.Marshal(c)
+	if err != nil {
+		return err
+	}
+	f := node.raft.Apply(b, raftTimeout)
+	return f.Error()
+}
+
 //加入NameNode节点集群
-func join(joinAddr, raftAddr, nodeID string) error {
+func join(joinAddr, raftAddr, localHaddr, nodeID string) error {
 	b, err := json.Marshal(model.ParamJoin{
 		RaftAddr: raftAddr,
+		HttpAddr: localHaddr,
 		ID:       nodeID,
 	})
 	if err != nil {
@@ -188,7 +219,7 @@ func join(joinAddr, raftAddr, nodeID string) error {
 	return nil
 }
 
-func New(raftDir, metadir, raftAddr, joinAddr, nodeID string) (err error) {
+func New(raftDir, metadir, raftAddr, joinAddr, localHaddr, nodeID string) (err error) {
 	RaftNodeClient = &RaftNode{
 		fileMutexs:  make(map[string]*sync.RWMutex),
 		logger:      log.New(os.Stderr, "[NameNode] ", log.LstdFlags),
@@ -196,6 +227,7 @@ func New(raftDir, metadir, raftAddr, joinAddr, nodeID string) (err error) {
 		MetaDir:     metadir,
 		RaftBind:    raftAddr,
 		DataNodeSet: make(map[string]*model.DataNode),
+		NameNodeSet: make(map[string]*model.NameNode),
 	}
 	if err := RaftNodeClient.Open(joinAddr == "", nodeID); err != nil {
 		log.Fatalf("failed to open store: %s", err.Error())
@@ -203,7 +235,7 @@ func New(raftDir, metadir, raftAddr, joinAddr, nodeID string) (err error) {
 	}
 	// If join was specified, make the join request.
 	if joinAddr != "" {
-		if err := join(joinAddr, raftAddr, nodeID); err != nil {
+		if err := join(joinAddr, raftAddr, localHaddr, nodeID); err != nil {
 			log.Fatalf("failed to join node at %s: %s", joinAddr, err.Error())
 			return err
 		}
@@ -268,7 +300,7 @@ func (s *RaftNode) Open(enableSingle bool, localID string) error {
 	return nil
 }
 
-func (s *RaftNode) Join(nodeID, addr string) error {
+func (s *RaftNode) Join(nodeID, addr, haddr string) error {
 	s.logger.Printf("received join request for remote node %s at %s", nodeID, addr)
 
 	configFuture := s.raft.GetConfiguration()
@@ -299,6 +331,7 @@ func (s *RaftNode) Join(nodeID, addr string) error {
 	if f.Error() != nil {
 		return f.Error()
 	}
+
 	s.logger.Printf("node %s at %s joined successfully", nodeID, addr)
 	return nil
 }
@@ -310,6 +343,7 @@ type command struct {
 	Key      string          `json:"key,omitempty"`
 	Meta     *FileMeta       `json:"file_meta,omitempty"`
 	DataNode *model.DataNode `json:"data_node,omitempty"`
+	NameNode *model.NameNode `json:"name_node,omitempty"`
 }
 
 // Apply applies a Raft log entry to the key-value store.
@@ -328,6 +362,8 @@ func (f *fsm) Apply(l *raft.Log) interface{} {
 		return f.applyDeleteMeta(c.Key)
 	case CommandAddDataNode:
 		return f.applyAddDataNode(c.DataNode)
+	case CommandAddNameNodeHaddr:
+		return f.applyAddNameNodeHaddr(c.NameNode)
 	default:
 		panic(fmt.Sprintf("unrecognized command op: %s", c.Op))
 	}
@@ -409,6 +445,13 @@ func (f *fsm) applyAddDataNode(dataNode *model.DataNode) interface{} {
 	f.DataNodeSet[dataNode.URL] = dataNode
 	f.mu.Unlock()
 	log.Printf("new DataNode(host:%s name:%s nodedisk:%d free:%d) Join in", dataNode.URL, dataNode.NodeName, dataNode.NodeDiskSize, dataNode.NodeDiskAvailableSize)
+	return nil
+}
+
+func (f *fsm) applyAddNameNodeHaddr(nameNode *model.NameNode) interface{} {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.NameNodeSet[nameNode.NodeID] = nameNode
 	return nil
 }
 

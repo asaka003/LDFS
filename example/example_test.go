@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func Test_upload1111121231123133(t *testing.T) {
+func Test_uploada12(t *testing.T) {
 	client := storagesdk.NewReplicasClient(
 		[]string{
 			"http://localhost:11001",
@@ -16,13 +16,13 @@ func Test_upload1111121231123133(t *testing.T) {
 			"http://localhost:11003",
 		})
 
-	err := client.SimpleUploadFile("dir/img.png", "test.png")
+	err := client.SimpleUploadFile("dir/2.png", "1231.jpg")
 	if err != nil {
 		fmt.Println(err)
 	}
 }
 
-func Test_download1001223(t *testing.T) {
+func Test_downloadb123123(t *testing.T) {
 	client := storagesdk.NewReplicasClient(
 		[]string{
 			"http://localhost:11001",
@@ -32,7 +32,7 @@ func Test_download1001223(t *testing.T) {
 			"http://localhost:11003",
 		})
 
-	err := client.DownloadFile("dir/img.png", "download.png")
+	err := client.DownloadFile("dir/2.png", "download2.png")
 	if err != nil {
 		fmt.Println(err)
 	}

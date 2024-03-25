@@ -23,3 +23,6 @@ bin/
 
 # Go workspace file
 go.work
+
+example/*.jpg 
+example/*.png

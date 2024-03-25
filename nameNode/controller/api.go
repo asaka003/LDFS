@@ -102,7 +102,6 @@ func RequestUploadFile(c *gin.Context) {
 	}
 
 	var selectDataNodeNum int
-
 	switch params.StoragePolicy {
 	case nodeClient.StoragePolicyCopy:
 		selectDataNodeNum = int(config.CopyReplicasNum)
@@ -215,7 +214,11 @@ func UpdateFileMeta(c *gin.Context) {
 	err = util.UpdateFileMeta(fileMeta)
 	if err != nil {
 		logger.Logger.Error("更新文件meta信息失败", zap.Error(err))
-		ResponseErr(c, CodeServerBusy)
+		if err.Error() == raft.ErrNotLeader {
+			ResponseErr(c, CodeNotLeader)
+		} else {
+			ResponseErr(c, CodeServerBusy)
+		}
 		return
 	}
 	ResponseSuc(c, nil)

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"math"
 	"os"
 	"sync"
@@ -105,7 +106,26 @@ func (cli *ReplicasClient) SimpleUploadFile(fileKey string, srcPath string) (err
 	}
 	fileMeta, err := NameNodeClient.RequestUploadFile(fileKey, backend, nodeClient.StoragePolicyCopy, fileInfo.Size(), Copy_BlockSize)
 	if err != nil {
-		return
+		//变更leader
+		var nameNode *model.NameNode
+		for _, url := range NameNodeFollowerUrls {
+			nameNode, err = NameNodeClient.GetNameNodeLeaderInfo(url)
+			if err != nil {
+				log.Printf("get nameNode Err")
+			} else {
+				break
+			}
+		}
+		AddNameNodeLeader("http://" + nameNode.HAddr)
+		RemoveNameNodeLeader(backend)
+		backend, err = nameNodeLeaderCluster.Consistent.Get(fileKey)
+		if err != nil {
+			return err
+		}
+		fileMeta, err = NameNodeClient.RequestUploadFile(fileKey, backend, nodeClient.StoragePolicyCopy, fileInfo.Size(), Copy_BlockSize)
+		if err != nil {
+			return err
+		}
 	}
 	//上传文件块
 	buf := make([]byte, 0) //置0,利用buffer动态扩容机制
@@ -131,7 +151,29 @@ func (cli *ReplicasClient) SimpleUploadFile(fileKey string, srcPath string) (err
 		//更新文件meta信息
 		err = NameNodeClient.UpdateFileMeta(backend, fileMeta)
 		if err != nil {
-			return err
+			if err.Error() == nodeClient.ErrNotLeader {
+				var nameNode *model.NameNode
+				for _, url := range NameNodeFollowerUrls {
+					nameNode, err = NameNodeClient.GetNameNodeLeaderInfo(url)
+					if err != nil {
+						log.Printf("get nameNode Err")
+					} else {
+						break
+					}
+				}
+				AddNameNodeLeader(nameNode.HAddr)
+				RemoveNameNodeLeader(backend)
+				backend, err = nameNodeLeaderCluster.Consistent.Get(fileKey)
+				if err != nil {
+					return err
+				}
+				err = NameNodeClient.UpdateFileMeta(nameNode.HAddr, fileMeta) //再次尝试更新Meta信息
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 	}
 	return
@@ -251,6 +293,27 @@ func (cli *ECClient) SimpleUploadFile(fileKey string, srcPath string) (err error
 	//将保存文件DataNode存储列表信息
 	err = NameNodeClient.CompleteSampleUpload(fileKey, backend)
 	if err != nil {
+		if err.Error() == nodeClient.ErrNotLeader {
+			var nameNode *model.NameNode
+			for _, url := range NameNodeFollowerUrls {
+				nameNode, err = NameNodeClient.GetNameNodeLeaderInfo(url)
+				if err != nil {
+					log.Printf("get nameNode Err")
+				} else {
+					break
+				}
+			}
+			AddNameNodeLeader(nameNode.HAddr)
+			RemoveNameNodeLeader(backend)
+			backend, err = nameNodeLeaderCluster.Consistent.Get(fileKey)
+			if err != nil {
+				return err
+			}
+			err = NameNodeClient.UpdateFileMeta(nameNode.HAddr, fileMeta) //再次尝试更新Meta信息
+			if err != nil {
+				return err
+			}
+		}
 		return
 	}
 	return

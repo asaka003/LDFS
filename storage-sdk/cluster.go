@@ -28,3 +28,19 @@ func InitCluster(nameNodeLeaderUrls, nameNodeFollowerUrls []string) {
 		nameNodeFollowerCluster.Consistent.Add(node)
 	}
 }
+
+func AddNameNodeLeader(haddr string) {
+	nameNodeLeaderCluster.Consistent.Add(haddr)
+}
+
+func RemoveNameNodeLeader(haddr string) {
+	nameNodeLeaderCluster.Consistent.Remove(haddr)
+}
+
+func AddNameNodeFollower(haddr string) {
+	nameNodeFollowerCluster.Consistent.Add(haddr)
+}
+
+func RemoveNameNodeFollower(haddr string) {
+	nameNodeFollowerCluster.Consistent.Remove(haddr)
+}

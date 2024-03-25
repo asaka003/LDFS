@@ -12,6 +12,7 @@ import (
 var (
 	ErrNotFoundUrl = errors.New("URL不存在或未初始化配置")
 	ErrRequestErr  = errors.New("请求出错")
+	ErrServerErr   = errors.New("服务端错误")
 )
 
 const (
@@ -21,12 +22,13 @@ const (
 
 //NameNodeHttpClient
 type NameNodeHttpClient struct {
-	getAllFileKeysUrl       string
-	getFileMetaByFileKeyUrl string
-	requestUploadFileUrl    string
-	completeSampleUploadUrl string
-	getDataNodeListInfoUrl  string
-	updateFileMetaUrl       string
+	getAllFileKeysUrl        string
+	getFileMetaByFileKeyUrl  string
+	requestUploadFileUrl     string
+	completeSampleUploadUrl  string
+	getDataNodeListInfoUrl   string
+	updateFileMetaUrl        string
+	getNameNodeLeaderInfoUrl string
 }
 
 type DataNodeHttpClient struct {
@@ -40,12 +42,13 @@ type DataNodeHttpClient struct {
 
 func GetNameNodeHttpClient() *NameNodeHttpClient {
 	return &NameNodeHttpClient{
-		getAllFileKeysUrl:       "/LDFS/getAllFileKeys",
-		getFileMetaByFileKeyUrl: "/LDFS/getFileMetaByFileKey",
-		requestUploadFileUrl:    "/LDFS/requestUploadFile",
-		completeSampleUploadUrl: "/LDFS/completeSampleUpload",
-		getDataNodeListInfoUrl:  "/LDFS/getDataNodeListInfo",
-		updateFileMetaUrl:       "/LDFS/updateFileMeta",
+		getAllFileKeysUrl:        "/LDFS/getAllFileKeys",
+		getFileMetaByFileKeyUrl:  "/LDFS/getFileMetaByFileKey",
+		requestUploadFileUrl:     "/LDFS/requestUploadFile",
+		completeSampleUploadUrl:  "/LDFS/completeSampleUpload",
+		getDataNodeListInfoUrl:   "/LDFS/getDataNodeListInfo",
+		updateFileMetaUrl:        "/LDFS/updateFileMeta",
+		getNameNodeLeaderInfoUrl: "/LDFS/getNameNodeLeaderInfo",
 	}
 }
 
@@ -59,6 +62,8 @@ func GetDataNodeHttpClient() *DataNodeHttpClient {
 		getStorageInfoUrl:        "/LDFS/getStorageInfo",
 	}
 }
+
+const ErrNotLeader = "err not leader"
 
 //获取简单上传文件的分块DataNode地址列表
 func (nameNodeClient *NameNodeHttpClient) GetDataNodeListInfo(backendUrl string) (dataNodeList []*model.DataNode, err error) {
@@ -110,6 +115,9 @@ func (nameNodeClient *NameNodeHttpClient) CompleteSampleUpload(fileKey, backendU
 	defer resp.Body.Close()
 
 	// 检查响应状态码
+	if resp.StatusCode == http.StatusForbidden {
+		return errors.New(ErrNotLeader)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.New("Complete Sample Upload failed with status " + resp.Status)
 	}
@@ -159,7 +167,7 @@ func (nameNodeClient *NameNodeHttpClient) RequestUploadFile(fileKey, backend, st
 	// 创建 HTTP 请求
 	req, err := http.NewRequest("POST", URL, bytes.NewBuffer(requestBodyBytes))
 	if err != nil {
-		return
+		return nil, ErrServerErr
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -170,12 +178,13 @@ func (nameNodeClient *NameNodeHttpClient) RequestUploadFile(fileKey, backend, st
 		return
 	}
 	defer resp.Body.Close()
-
+	if resp.StatusCode == http.StatusForbidden {
+		return nil, errors.New(ErrNotLeader)
+	}
 	// 检查响应状态码
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New("Request UploadFile failed with status " + resp.Status)
 	}
-
 	// 解析响应体
 	responseBodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -249,10 +258,37 @@ func (nameNodeClient *NameNodeHttpClient) UpdateFileMeta(backend string, fileMet
 	}
 	defer resp.Body.Close()
 	// 检查响应状态码
+	if resp.StatusCode == http.StatusForbidden {
+		return errors.New(ErrNotLeader)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.New("Request UploadFile failed with status " + resp.Status)
 	}
 	return nil
+}
+
+//获取NameNode  Leaderhttp服务地址
+func (nameNodeClient *NameNodeHttpClient) GetNameNodeLeaderInfo(backend string) (nameNode *model.NameNode, err error) {
+	//访问NameNode获取文件Meta信息
+	res, err := http.Get(backend + nameNodeClient.getNameNodeLeaderInfoUrl)
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
+	// 检查响应状态码
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New("Get FileMate failed with status " + res.Status)
+	}
+	fileMetaBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return
+	}
+	nameNode = new(model.NameNode)
+	err = json.Unmarshal(fileMetaBytes, nameNode)
+	if err != nil {
+		return
+	}
+	return
 }
 
 //恢复文件数据
