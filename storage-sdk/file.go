@@ -246,7 +246,9 @@ func (cli *ECClient) DownloadFile(fileKey string, destPath string) (err error) {
 	return
 }
 
-//简单上传文件
+/*
+	简单上传文件
+*/
 func (cli *ECClient) SimpleUploadFile(fileKey string, srcPath string) (err error) {
 	//一致性hash负载均衡获取要请求的NameNode地址
 	backend, err := nameNodeLeaderCluster.Consistent.Get(fileKey)

@@ -12,11 +12,17 @@ type RecoverShardParam struct {
 	StoragePolicy  string `json:"storage_policy"`
 }
 
+// type ECconfig struct {
+// 	DataShardNum    int
+// 	ParityShardsNum int
+// }
+
 type RequestUploadFileParams struct {
 	FileKey       string `json:"file_key"`
 	FileSize      int64  `json:"file_size"`
 	BlockSize     int64  `json:"block_size"` //设置的每个块的最大值
 	StoragePolicy string `json:"storage_policy"`
+	// ECconfig      *ECconfig `json:"EC_config"` //纠删码模式下有效
 }
 
 type CompleteSampleUploadParams struct {

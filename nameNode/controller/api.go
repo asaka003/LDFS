@@ -69,7 +69,12 @@ func GetFileMetaByFileKey(c *gin.Context) {
 	ResponseSuc(c, fileMeta)
 }
 
-//请求上传文件  (秒传优化)
+/*
+	处理不同策略模式的文件上传，仅初始化文件的meta信息
+	- 如果是副本冗余模式，则会根据nameNode设置的block_size大小进行分配dataNode
+	- 如果是纠删码模式，则会根据nameNode设置的block_size划分不同的文件块
+	随后对不同的文件块进行数据块拆分，给出数据块和校验块的dataNode存储地址
+*/
 func RequestUploadFile(c *gin.Context) {
 	params := new(model.RequestUploadFileParams)
 	err := c.ShouldBindJSON(params)
@@ -108,6 +113,8 @@ func RequestUploadFile(c *gin.Context) {
 		selectDataNodeNum = int(config.CopyReplicasNum)
 	case nodeClient.StoragePolicyEC:
 		selectDataNodeNum = int(config.ECDataShardNum + config.ECParityShardNum)
+		fileMeta.DataShards = int(config.ECDataShardNum)
+		fileMeta.ParityShards = int(config.ECParityShardNum)
 	default:
 		ResponseErr(c, CodeInvalidParam)
 		return

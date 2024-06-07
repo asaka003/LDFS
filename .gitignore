@@ -26,3 +26,4 @@ go.work
 
 example/*.jpg 
 example/*.png
+.vscode

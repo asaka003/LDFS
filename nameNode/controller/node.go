@@ -34,7 +34,6 @@ func JoinNameNodeHandler(c *gin.Context) {
 		ResponseErr(c, CodeServerBusy)
 		return
 	}
-	//fmt.Println("加入节点:", params.ID, params.HttpAddr)
 	err = raft.RaftNodeClient.AddNameNodeHaddr(&model.NameNode{ //添加http服务地址信息
 		NodeID: params.ID,
 		HAddr:  params.HttpAddr,

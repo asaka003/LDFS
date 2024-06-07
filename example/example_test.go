@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-func Test_uploada12312311111111111111(t *testing.T) {
-	client := storagesdk.NewReplicasClient(
+func Test_uploada14151(t *testing.T) {
+	client := storagesdk.NewECClient(
 		[]string{
 			"http://localhost:11001",
 		},
