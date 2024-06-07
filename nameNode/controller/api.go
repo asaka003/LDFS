@@ -170,7 +170,7 @@ func RequestUploadFile(c *gin.Context) {
 	ResponseSuc(c, result)
 }
 
-//完成文件上传请求
+//完成简单文件上传请求
 func CompleteSampleUpload(c *gin.Context) {
 	params := new(model.CompleteSampleUploadParams)
 	err := c.ShouldBindJSON(params)
@@ -178,15 +178,27 @@ func CompleteSampleUpload(c *gin.Context) {
 		ResponseErr(c, CodeInvalidParam)
 		return
 	}
-	metaPath := filepath.Join(config.FileMetaDir, util.BytesHash([]byte(params.FileKey))+".json")
-	fileMeta, err := util.GetFileMetaInFile(metaPath)
+	fileMeta, err := util.GetFileMetaInFile(params.FileKey)
 	if err != nil {
 		logger.Logger.Error("读取fileMeta文件信息失败", zap.Error(err))
+		ResponseErr(c, CodeServerBusy)
 		return
 	}
+
+	//更新hash值
+	if fileMeta.StoragePolicy == nodeClient.StoragePolicyEC {
+		for i, block := range params.FileMeta.Blocks {
+			fileMeta.Blocks[i].Hash = block.Hash
+			for j, shard := range block.Shards {
+				fileMeta.Blocks[i].Shards[j].Hash = shard.Hash
+			}
+		}
+	}
+
 	fileMeta.Status = "success"
 	err = util.SaveFileMetaInFile(fileMeta)
 	if err != nil {
+		logger.Logger.Error("保存fileMeta文件信息失败", zap.Error(err))
 		ResponseErr(c, CodeServerBusy)
 		return
 	}

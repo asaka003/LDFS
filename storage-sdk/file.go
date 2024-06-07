@@ -210,8 +210,7 @@ func (cli *ECClient) DownloadFile(fileKey string, destPath string) (err error) {
 	blockNum := len(fileMeta.Blocks)
 	buffers := make([]*bytes.Buffer, fileMeta.DataShards+fileMeta.ParityShards)
 	for i := range buffers {
-		buf := make([]byte, EC_ShardSize)
-		buffers[i] = bytes.NewBuffer(buf)
+		buffers[i] = new(bytes.Buffer)
 	}
 	//下载文件Shard
 	wg := sync.WaitGroup{}
@@ -247,7 +246,9 @@ func (cli *ECClient) DownloadFile(fileKey string, destPath string) (err error) {
 }
 
 /*
-	简单上传文件
+	纠删码模式下的 简单上传文件
+	此方法会将用户给定的源文件地址进行block_size大小的切分，
+	随后对每一个文件块进行数据块和校验块计算，并分发指定的DataNode节点上
 */
 func (cli *ECClient) SimpleUploadFile(fileKey string, srcPath string) (err error) {
 	//一致性hash负载均衡获取要请求的NameNode地址
@@ -255,7 +256,7 @@ func (cli *ECClient) SimpleUploadFile(fileKey string, srcPath string) (err error
 	if err != nil {
 		return
 	}
-	srcFile, err := os.OpenFile(srcPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	srcFile, err := os.Open(srcPath)
 	if err != nil {
 		return err
 	}
@@ -280,7 +281,10 @@ func (cli *ECClient) SimpleUploadFile(fileKey string, srcPath string) (err error
 	for blockId := 0; blockId < BlockNum; blockId++ {
 		blockBuf.Reset()
 		//读取block数据
-		io.CopyN(blockBuf, srcFile, EC_BlockSize)
+		_, err := io.CopyN(blockBuf, srcFile, EC_BlockSize)
+		if err != io.EOF && err != nil {
+			return err
+		}
 		//编码文件
 		shardBuffs, err := EncodeBuffer(blockBuf, fileMeta.DataShards, fileMeta.ParityShards)
 		if err != nil {
@@ -291,15 +295,15 @@ func (cli *ECClient) SimpleUploadFile(fileKey string, srcPath string) (err error
 			//计算shard的Hash值
 			Hash := util.BytesHash(shardBuffs[i].Bytes())
 			fileMeta.Blocks[blockId].Shards[i].Hash = Hash
-			err = DataNodeClient.ECUploadShardBytes(Hash, blockBuf, fileMeta.Blocks[blockId].Shards[i].NodeURL)
+			err = DataNodeClient.ECUploadShardBytes(Hash, shardBuffs[i], fileMeta.Blocks[blockId].Shards[i].NodeURL)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	//将保存文件DataNode存储列表信息
-	err = NameNodeClient.CompleteSampleUpload(fileKey, backend)
+	//完成文件EC上传，并更新filemeta信息
+	err = NameNodeClient.CompleteSampleUpload(fileKey, backend, fileMeta)
 	if err != nil {
 		if err.Error() == nodeClient.ErrNotLeader {
 			var nameNode *model.NameNode

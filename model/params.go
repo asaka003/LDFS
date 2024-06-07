@@ -26,7 +26,8 @@ type RequestUploadFileParams struct {
 }
 
 type CompleteSampleUploadParams struct {
-	FileKey string `json:"file_key"`
+	FileKey  string        `json:"file_key"`
+	FileMeta *FileMetadata `json:"file_meta"`
 }
 
 const (

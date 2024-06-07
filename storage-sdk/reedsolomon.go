@@ -79,18 +79,20 @@ func EncodeBuffer(buffer *bytes.Buffer, dataShards, parityShards int) (BufferSha
 		return
 	}
 
-	shards := dataShards + parityShards
-	BufferShards = make([]*bytes.Buffer, shards)
+	shardsNum := dataShards + parityShards
+	BufferShards = make([]*bytes.Buffer, shardsNum)
 	for i := range BufferShards {
-		buf := make([]byte, EC_ShardSize)
-		BufferShards[i] = bytes.NewBuffer(buf)
+		BufferShards[i] = new(bytes.Buffer)
 	}
 
 	// Split into files.
 	data := make([]io.Writer, dataShards)
+	tempBuffers := make([]*bytes.Buffer, dataShards)
 	for i := range data {
-		data[i] = BufferShards[i]
+		tempBuffers[i] = new(bytes.Buffer)
+		data[i] = io.MultiWriter(BufferShards[i], tempBuffers[i])
 	}
+
 	// Do the split
 	err = enc.Split(buffer, data, int64(buffer.Len()))
 	if err != nil {
@@ -112,6 +114,9 @@ func EncodeBuffer(buffer *bytes.Buffer, dataShards, parityShards int) (BufferSha
 	err = enc.Encode(input, parity)
 	if err != nil {
 		return
+	}
+	for i := 0; i < dataShards; i++ {
+		BufferShards[i] = tempBuffers[i]
 	}
 	return
 }
@@ -303,7 +308,7 @@ func ReconstructBuffer(shardsBuffer []*bytes.Buffer, outputPath string, dataShar
 		}
 	}
 
-	f, err := os.OpenFile(outputPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.Create(outputPath)
 	if err != nil {
 		return
 	}

@@ -134,12 +134,15 @@ func (nameNodeClient *NameNodeHttpClient) JoinDataNode(leaderNameNodeAddr string
 	return nil
 }
 
-//发送简单上传分块信息
-func (nameNodeClient *NameNodeHttpClient) CompleteSampleUpload(fileKey, backendUrl string) (err error) {
+//完成简单文件上传
+func (nameNodeClient *NameNodeHttpClient) CompleteSampleUpload(fileKey, backendUrl string, fileMeta *model.FileMetadata) (err error) {
 	URL := backendUrl + nameNodeClient.completeSampleUploadUrl
 
 	// 创建请求体
-	requestBody := model.CompleteSampleUploadParams{FileKey: fileKey}
+	requestBody := model.CompleteSampleUploadParams{
+		FileKey:  fileKey,
+		FileMeta: fileMeta,
+	}
 	requestBodyBytes, err := json.Marshal(requestBody)
 	if err != nil {
 		return
